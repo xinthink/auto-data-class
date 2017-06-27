@@ -14,5 +14,5 @@ import java.util.*
 @AutoDataClass data class Person(val name: String,
                                  val gender: Int = 1,
                                  val age: Int = 0,
-                                 val dateOfBord: Date?,
+                                 val dateOfBorn: Date?,
                                  val address: Address?)

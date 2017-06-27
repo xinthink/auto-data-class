@@ -3,4 +3,5 @@ apply plugin: 'kotlin-kapt'
 dependencies {
     compile project(':lib')
     kapt project(':processor')
+    compileOnly project(':processor')
 }
