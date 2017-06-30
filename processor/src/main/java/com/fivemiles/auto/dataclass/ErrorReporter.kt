@@ -1,4 +1,4 @@
-package io.github.xinthink.auto.dataclass
+package com.fivemiles.auto.dataclass
 
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element

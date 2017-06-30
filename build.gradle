@@ -1,4 +1,4 @@
-group 'io.github.xinthink.auto'
+group 'com.fivemiles.auto'
 version '0.1.0'
 
 buildscript {

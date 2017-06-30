@@ -1,4 +1,4 @@
-package io.github.xinthink.auto.dataclass
+package com.fivemiles.auto.dataclass
 
 /**
  * Created by ywu on 2017/6/26.
