@@ -29,7 +29,7 @@ import javax.lang.model.type.TypeMirror
 
 
 private val ANNOTATION_NAME = "@${DataClass::class.simpleName}"
-private const val CLASS_NAME_PREFIX = "Auto"
+private const val CLASS_NAME_PREFIX = "DC"
 private const val CLASS_NAME_SEPARATOR = "_"
 private const val DATA_CLASS_NAME_SUFFIX = ""
 private const val GSON_ADAPTER_CLASS_NAME_SUFFIX = "GsonTypeAdapter"
@@ -164,18 +164,19 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
     private fun dataClassSpec(type: TypeElement): TypeSpec {
         val getters = propertyMethodsIn(getLocalAndInheritedMethods(type, typeUtils, elementUtils))
         val properties = propertyNameToMethodMap(getters)
-        val dataClassName = generatedClassName(type.simpleName, DATA_CLASS_NAME_SUFFIX)
+        val dataClassSimpleName = generatedClassName(type.simpleName, DATA_CLASS_NAME_SUFFIX)
+        val dataClassName = type.asClassName().peerClass(dataClassSimpleName)
         return TypeSpec.classBuilder(dataClassName)
                 .addSuperinterface(type.asClassName())
                 .addModifiers(KModifier.DATA, KModifier.INTERNAL)
                 .apply {
+                    // add stuff with properties
                     val constructorBuilder = FunSpec.constructorBuilder()
                     properties.forEach {
                         val propName = it.key
                         val propType = propertyType(it.value)
 
-                        constructorBuilder.addParameter(
-                                ParameterSpec.builder(propName, propType).build())
+                        constructorBuilder.addParameter(ParameterSpec.builder(propName, propType).build())
                         addProperty(PropertySpec.builder(propName, propType)
                                 .addModifiers(KModifier.OVERRIDE)
                                 .initializer(propName)
@@ -321,6 +322,7 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
         return DefaultMethod.NONE
     }
 
+    // TODO skip properties with default implement
     private fun propertyNameToMethodMap(
             propertyMethods: Set<ExecutableElement>): Map<String, ExecutableElement> {
         val allPrefixed = gettersAllPrefixed(propertyMethods)
