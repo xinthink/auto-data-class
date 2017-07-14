@@ -5,41 +5,28 @@
  */
 package com.fivemiles.auto.dataclass
 
-import com.google.auto.common.AnnotationMirrors.getAnnotationValue
 import com.google.auto.common.BasicAnnotationProcessor
-import com.google.auto.common.MoreElements.*
+import com.google.auto.common.MoreElements.getPackage
 import com.google.common.base.Throwables
 import com.google.common.collect.SetMultimap
-import com.google.gson.Gson
-import com.google.gson.TypeAdapter
-import com.google.gson.stream.JsonReader
-import com.google.gson.stream.JsonWriter
-import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
-import org.jetbrains.annotations.Nullable
-import java.beans.Introspector
+import com.squareup.kotlinpoet.KotlinFile
+import com.squareup.kotlinpoet.TypeSpec
 import java.io.File
 import java.io.IOException
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
-import javax.lang.model.type.TypeKind
-import javax.lang.model.type.TypeMirror
 
 
-private val ANNOTATION_NAME = "@${DataClass::class.simpleName}"
+internal val ANNOTATION_NAME = "@${DataClass::class.simpleName}"
 private const val CLASS_NAME_PREFIX = "DC"
 private const val CLASS_NAME_SEPARATOR = "_"
-private const val DATA_CLASS_NAME_SUFFIX = ""
-private const val GSON_ADAPTER_CLASS_NAME_SUFFIX = "GsonTypeAdapter"
-private const val QN_GSON_TOKEN_NULL = "com.google.gson.stream.JsonToken.NULL"
-private val REGEX_COMPONENT_FUN = Regex("""^component\d+$""")
 
-private fun generatedClassName(originName: Name, suffix: String = "") =
+
+internal fun generatedClassName(originName: Name, suffix: String = "") =
         generatedClassName("$originName", suffix)
 
-private fun generatedClassName(originName: String, suffix: String = "") =
+internal fun generatedClassName(originName: String, suffix: String = "") =
         "$CLASS_NAME_PREFIX$CLASS_NAME_SEPARATOR$originName${if (suffix.isEmpty()) "" else "$CLASS_NAME_SEPARATOR$suffix"}"
 
 /**
@@ -59,6 +46,7 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
     private val errorReporter = ErrorReporter(processingEnv)
+    private val dataClassGenerator = DataClassGenerator(processingEnv, errorReporter)
     private var sourceLocation: File? = null
 
     override fun annotations() = setOf(DataClass::class.java)
@@ -110,7 +98,7 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
 
         checkNested(type)
 
-        val dataClassSpec = dataClassSpec(type)
+        val dataClassSpec = dataClassGenerator.generate(type)
         generateFile(type, dataClassSpec)
     }
 
@@ -160,114 +148,6 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
 
     private fun findPackage(type: TypeElement): Element = getPackage(type)
 
-    @Suppress("UNCHECKED_CAST")
-    private fun dataClassSpec(type: TypeElement): TypeSpec {
-        val getters = propertyMethodsIn(getLocalAndInheritedMethods(type, typeUtils, elementUtils))
-        val properties = propertyNameToMethodMap(getters)
-        val dataClassSimpleName = generatedClassName(type.simpleName, DATA_CLASS_NAME_SUFFIX)
-        val dataClassName = type.asClassName().peerClass(dataClassSimpleName)
-        return TypeSpec.classBuilder(dataClassName)
-                .addSuperinterface(type.asClassName())
-                .addModifiers(KModifier.DATA, KModifier.INTERNAL)
-                .apply {
-                    // add stuff with properties
-                    val constructorBuilder = FunSpec.constructorBuilder()
-                    properties.forEach {
-                        val propName = it.key
-                        val propType = propertyType(it.value)
-
-                        constructorBuilder.addParameter(ParameterSpec.builder(propName, propType).build())
-                        addProperty(PropertySpec.builder(propName, propType)
-                                .addModifiers(KModifier.OVERRIDE)
-                                .initializer(propName)
-                                .build())
-                    }
-
-                    primaryConstructor(constructorBuilder.build())
-                }
-                .build()
-    }
-
-    private fun dataClassSpecDeprecated(type: TypeElement): TypeSpec {
-        val clsDefMirror = getAnnotationMirror(type, DataClass::class.java).orNull()
-        val clsName = getAnnotationValue(clsDefMirror, "name").value as String
-        val adapterClsName = generatedClassName(clsName, DATA_CLASS_NAME_SUFFIX)
-
-        val propsMirror = getAnnotationValue(clsDefMirror, "props").value as List<AnnotationMirror>
-        if (propsMirror.isEmpty()) {
-            errorReporter.abortWithError("Data class must have at least one property", type)
-        }
-
-        return TypeSpec.classBuilder(adapterClsName)
-                .addModifiers(KModifier.DATA)
-                .apply {
-                    val constructorBuilder = FunSpec.constructorBuilder()
-                    propsMirror.forEach {
-                        val propName = getAnnotationValue(it, "name").value as String
-                        val propType = (getAnnotationValue(it, "type").value as TypeMirror).asTypeName()
-
-                        constructorBuilder.addParameter(
-                                ParameterSpec.Companion.builder(propName, propType).build())
-                        addProperty(PropertySpec.Companion.builder(propName, propType).initializer(propName).build())
-                    }
-
-                    primaryConstructor(constructorBuilder.build())
-                }
-                .build()
-    }
-
-    private fun gsonTypeAdapterSpec(type: TypeElement, properties: Set<VariableElement>): TypeSpec {
-        val adapterClsName = generatedClassName(type.simpleName, GSON_ADAPTER_CLASS_NAME_SUFFIX)
-        val superClsTypeName = ParameterizedTypeName.Companion.get(TypeAdapter::class.asClassName(), type.asClassName())
-
-        return TypeSpec.classBuilder(adapterClsName)
-                .superclass(superClsTypeName)
-                .primaryConstructor(FunSpec.constructorBuilder()
-                        .addParameter("gson", Gson::class)
-                        .build())
-                .addProperty(PropertySpec.builder("gson", Gson::class)
-                        .addModifiers(KModifier.PRIVATE)
-                        .initializer("gson")
-                        .build())
-                .addProperties(properties.map {
-                    PropertySpec.Companion.builder("${it.simpleName}",
-                            ParameterizedTypeName.Companion.get(TypeAdapter::class.asClassName(), it.asType().asTypeName()))
-                            .addModifiers(KModifier.PRIVATE)
-                            .initializer("gson.getAdapter(%T::class.java)", it)
-                            .build()
-                })
-                .addFun(gsonReaderFunSpec(type, properties))
-                .addFun(gsonWriterFunSpec(type, properties))
-                .build()
-    }
-
-    private fun gsonReaderFunSpec(type: TypeElement, properties: Set<VariableElement>): FunSpec {
-        val paramNameReader = "jsonReader"
-        return FunSpec.builder("read")
-                .addModifiers(KModifier.OVERRIDE)
-                .addParameter(paramNameReader, JsonReader::class)
-                .returns(type.asClassName().asNullable())
-                .beginControlFlow("if ($paramNameReader == ${QN_GSON_TOKEN_NULL}")
-                .addStatement("$paramNameReader.nextNull()")
-                .addStatement("return null")
-                .endControlFlow()
-                .addStatement("\n$paramNameReader.beginObject()")
-
-                .addStatement("$paramNameReader.endObject()\n")
-                .addStatement("return ${type.simpleName}()")
-                .build()
-    }
-
-    private fun gsonWriterFunSpec(type: TypeElement, properties: Set<VariableElement>): FunSpec {
-        val paramNameWriter = "jsonWriter"
-        val paramNameObj = "${type.simpleName}".decapitalize()
-        return FunSpec.builder("write")
-                .addModifiers(KModifier.OVERRIDE)
-                .addParameter(paramNameWriter, JsonWriter::class)
-                .addParameter(paramNameObj, type.asClassName().asNullable())
-                .build()
-    }
-
     private fun generateFile(type: TypeElement, classSpec: TypeSpec) {
         val fileName = "${classSpec.name}"
         val pkg = findPackage(type)
@@ -291,96 +171,4 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
                     "Could not write generated class $fileName: $e", type)
         }
     }
-
-    private fun propertyMethodsIn(methods: Set<ExecutableElement>?): Set<ExecutableElement> =
-            when (methods) {
-                null -> setOf()
-                else -> methods.filter {
-                    it.parameters.isEmpty() &&
-                            it.returnType?.kind != TypeKind.VOID &&
-                            objectMethodToOverride(it) === DefaultMethod.NONE
-                }.toSet()
-            }
-
-    private fun objectMethodToOverride(method: ExecutableElement): DefaultMethod {
-        val name = method.simpleName.toString()
-        when (method.parameters.size) {
-            0 -> {
-                when {
-                    name == "toString" -> return DefaultMethod.TO_STRING
-                    name == "hashCode" -> return DefaultMethod.HASH_CODE
-                    name == "clone" -> return DefaultMethod.CLONE
-                    name == "getClass" -> return DefaultMethod.CLASS
-                    name.matches(REGEX_COMPONENT_FUN) -> return DefaultMethod.COMPONENT
-                }
-            }
-            1 -> if (name == "equals" &&
-                    method.parameters[0].asType().toString() == "java.lang.Object") {
-                return DefaultMethod.EQUALS
-            }
-        }
-        return DefaultMethod.NONE
-    }
-
-    // TODO skip properties with default implement
-    private fun propertyNameToMethodMap(
-            propertyMethods: Set<ExecutableElement>): Map<String, ExecutableElement> {
-        val allPrefixed = gettersAllPrefixed(propertyMethods)
-        val map = mutableMapOf<String, ExecutableElement>()
-        propertyMethods.forEach {
-            val methodName = "${it.simpleName}"
-            val name = if (allPrefixed) nameWithoutPrefix(methodName) else methodName
-            val old = map.put(name, it)
-            if (old != null) {
-                errorReporter.reportError("More than one @$ANNOTATION_NAME property called $name", it)
-            }
-        }
-        return map
-    }
-
-    private fun propertyType(propertyMethod: ExecutableElement): TypeName {
-        val type = propertyMethod.returnType.asTypeName()
-        return if (isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
-    }
-
-    private fun gettersAllPrefixed(methods: Set<ExecutableElement>) = prefixedGettersIn(methods).size == methods.size
-
-    private fun prefixedGettersIn(methods: Iterable<ExecutableElement>): Set<ExecutableElement> {
-        return methods.filter {
-            val name = "${it.simpleName}"
-            // `getfoo` or `isfoo` (without a capital) is a getter currently
-            name.matches("""^get.+""".toRegex()) ||
-                    (name.matches("""^is.+""".toRegex()) && it.returnType.kind == TypeKind.BOOLEAN)
-        }.toSet()
-    }
-
-    /**
-     * Returns the name of the property defined by the given getter. A getter called `getFoo()`
-     * or `isFoo()` defines a property called `foo`. For consistency with JavaBeans, a
-     * getter called `getHTMLPage()` defines a property called `HTMLPage`. The
-     * [rule](https://docs.oracle.com/javase/8/docs/api/java/beans/Introspector.html#decapitalize-java.lang.String-) is: the name of the property is the part after `get` or `is`, with the
-     * first letter lowercased *unless* the first two letters are uppercase. This works well
-     * for the `HTMLPage` example, but in these more enlightened times we use `HtmlPage`
-     * anyway, so the special behaviour is not useful, and of course it behaves poorly with examples like `OAuth`.
-     */
-    private fun nameWithoutPrefix(methodName: String): String {
-        val name = when {
-            methodName.startsWith("get") -> methodName.substring(3)
-            methodName.startsWith("is") -> methodName.substring(2)
-            else -> throw IllegalArgumentException("")
-        }
-        return Introspector.decapitalize(name)
-    }
-}
-
-/**
- * Methods defined in Object or generated by kotlin
- */
-private enum class DefaultMethod {
-    NONE,
-    // java methods
-    TO_STRING,
-    EQUALS, HASH_CODE, CLONE, CLASS,
-    // kotlin methods
-    COMPONENT,
 }
