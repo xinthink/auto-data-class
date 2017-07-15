@@ -145,6 +145,18 @@ internal class GsonTypeAdapterGenerator(
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter(paramNameWriter, JsonWriter::class)
                 .addParameter(paramNameObj, type.asClassName().asNullable())
+                .beginControlFlow("if ($paramNameObj == null)")
+                .addStatement("$paramNameWriter.nullValue()")
+                .addStatement("return")
+                .endControlFlow()
+                .addStatement("$paramNameWriter.beginObject()")
+                .apply {
+                    propertyMethods.forEach { (p, _) ->
+                        addStatement("$paramNameWriter.name(%S)", p)
+                        addStatement("${p}Adapter.write($paramNameWriter, $paramNameObj.$p)")
+                    }
+                }
+                .addStatement("$paramNameWriter.endObject()")
                 .build()
     }
 

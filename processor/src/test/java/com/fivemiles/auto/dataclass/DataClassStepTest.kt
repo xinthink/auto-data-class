@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertAbout
 import com.google.testing.compile.JavaFileObjects
 import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test

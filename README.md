@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/xinthink/auto-data-class.svg?branch=master)](https://travis-ci.org/xinthink/auto-data-class)
 
 # auto-data-class
-An annotation processor which generates [Kotlin Data Classes] and the boilerplates to use Parcelable & GSON TypeAdapter, inspired by [AutoValue] and its popular extensions [auto-value-parcel] & [auto-value-gson].
+An annotation processor generates [Kotlin Data Classes] and the boilerplates for Parcelable & GSON TypeAdapter. Inspired by [AutoValue] and its popular extensions [auto-value-parcel] & [auto-value-gson].
 
 ## Usage
 Declare your data model as an interface, and annotate it with `@DataClass`
@@ -28,7 +28,7 @@ internal data class DC_Address(
 }
 ``` 
 
-Similar to [AutoValue], it's convenient to write factory methods or derived properties to access the generated code.
+Just like how you'll use [AutoValue], it's convenient to write factory methods or derived properties to access the generated code.
 
 ```kotlin
 @DataClass interface Address {
