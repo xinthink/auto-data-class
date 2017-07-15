@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableSet
 import com.google.common.collect.Iterables.getOnlyElement
 import com.google.common.truth.Truth.assertThat
 import com.google.testing.compile.CompilationRule
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
@@ -29,9 +27,7 @@ import org.mockito.Mockito
 import org.mockito.Mockito.mock
 import java.io.Closeable
 import java.io.IOException
-import java.util.Arrays
 import java.util.concurrent.Callable
-import java.util.concurrent.TimeoutException
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Modifier
@@ -52,18 +48,13 @@ class FunSpecTest {
     types = compilation.types
   }
 
-  private fun getElement(clazz: Class<*>): TypeElement {
-    return elements.getTypeElement(clazz.canonicalName)
+  private fun getElement(`class`: Class<*>): TypeElement {
+    return elements.getTypeElement(`class`.canonicalName)
   }
 
-  private fun findFirst(elements: Collection<ExecutableElement>, name: String): ExecutableElement {
-    for (executableElement in elements) {
-      if (executableElement.simpleName.toString() == name) {
-        return executableElement
-      }
-    }
-    throw IllegalArgumentException(name + " not found in " + elements)
-  }
+  private fun findFirst(elements: Collection<ExecutableElement>, name: String) =
+      elements.firstOrNull { it.simpleName.toString() == name } ?:
+          throw IllegalArgumentException("$name not found in $elements")
 
   @Target(AnnotationTarget.VALUE_PARAMETER)
   internal annotation class Nullable
@@ -239,7 +230,7 @@ class FunSpecTest {
     val lambdaTypeName = LambdaTypeName.get(parameters = *arrayOf(booleanType, stringType), returnType = unitType)
         .asNullable()
     val funSpec = FunSpec.builder("foo")
-        .addParameter(ParameterSpec.builder("f", lambdaTypeName) .build())
+        .addParameter(ParameterSpec.builder("f", lambdaTypeName).build())
         .returns(String::class)
         .build()
 

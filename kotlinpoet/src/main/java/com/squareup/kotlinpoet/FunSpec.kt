@@ -15,17 +15,12 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import com.squareup.kotlinpoet.FunSpec.Companion.CONSTRUCTOR
 import com.squareup.kotlinpoet.FunSpec.Companion.GETTER
 import com.squareup.kotlinpoet.FunSpec.Companion.SETTER
 import com.squareup.kotlinpoet.KModifier.VARARG
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
-import com.squareup.kotlinpoet.TypeVariableName.Companion.asTypeVariableName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
-import javax.lang.model.SourceVersion
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Modifier
 import javax.lang.model.type.DeclaredType
@@ -56,12 +51,7 @@ class FunSpec private constructor(builder: Builder) {
     }
   }
 
-  internal fun parameter(name: String): ParameterSpec? {
-    for (parameter in parameters) {
-      if (parameter.name == name) return parameter
-    }
-    return null
-  }
+  internal fun parameter(name: String) = parameters.firstOrNull { it.name == name }
 
   @Throws(IOException::class)
   internal fun emit(
@@ -164,7 +154,7 @@ class FunSpec private constructor(builder: Builder) {
   override fun hashCode() = toString().hashCode()
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       val codeWriter = CodeWriter(out)
       emit(codeWriter, "Constructor", TypeSpec.Kind.CLASS.implicitFunctionModifiers)
@@ -172,7 +162,6 @@ class FunSpec private constructor(builder: Builder) {
     } catch (e: IOException) {
       throw AssertionError()
     }
-
   }
 
   fun toBuilder(): Builder {
@@ -200,7 +189,7 @@ class FunSpec private constructor(builder: Builder) {
     internal val code = CodeBlock.builder()
 
     init {
-      require(name.isConstructor || name.isAccessor || SourceVersion.isName(name)) {
+      require(name.isConstructor || name.isAccessor || isName(name)) {
         "not a valid name: $name"
       }
     }
@@ -394,10 +383,10 @@ class FunSpec private constructor(builder: Builder) {
       modifiers.remove(Modifier.ABSTRACT)
       funBuilder.jvmModifiers(modifiers)
 
-      for (typeParameterElement in method.typeParameters) {
-        val typeVariable = typeParameterElement.asType() as TypeVariable
-        funBuilder.addTypeVariable(typeVariable.asTypeVariableName())
-      }
+      method.typeParameters
+          .map { it.asType() as TypeVariable }
+          .map { it.asTypeVariableName() }
+          .forEach { funBuilder.addTypeVariable(it) }
 
       funBuilder.returns(method.returnType.asTypeName())
       funBuilder.addParameters(ParameterSpec.parametersOf(method))
@@ -408,7 +397,7 @@ class FunSpec private constructor(builder: Builder) {
             .build()
       }
 
-      if(method.thrownTypes.isNotEmpty()) {
+      if (method.thrownTypes.isNotEmpty()) {
         val throwsValueString = method.thrownTypes.joinToString { "%T::class" }
         funBuilder.addAnnotation(AnnotationSpec.builder(Throws::class)
             .addMember("value", throwsValueString, *method.thrownTypes.toTypedArray())

@@ -15,12 +15,8 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
-import javax.lang.model.SourceVersion
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Modifier
 import javax.lang.model.element.VariableElement
@@ -28,10 +24,10 @@ import kotlin.reflect.KClass
 
 /** A generated parameter declaration.  */
 class ParameterSpec private constructor(builder: ParameterSpec.Builder) {
-  val name: String = builder.name
-  val annotations: List<AnnotationSpec> = builder.annotations.toImmutableList()
-  val modifiers: Set<KModifier> = builder.modifiers.toImmutableSet()
-  val type: TypeName = builder.type
+  val name = builder.name
+  val annotations = builder.annotations.toImmutableList()
+  val modifiers = builder.modifiers.toImmutableSet()
+  val type = builder.type
   val defaultValue = builder.defaultValue
 
   @Throws(IOException::class)
@@ -39,6 +35,10 @@ class ParameterSpec private constructor(builder: ParameterSpec.Builder) {
     codeWriter.emitAnnotations(annotations, true)
     codeWriter.emitModifiers(modifiers)
     codeWriter.emitCode("%L: %T", name, type)
+    emitDefaultValue(codeWriter)
+  }
+
+  internal fun emitDefaultValue(codeWriter: CodeWriter) {
     if (defaultValue != null) {
       codeWriter.emitCode(" = %[%L%]", defaultValue)
     }
@@ -54,14 +54,13 @@ class ParameterSpec private constructor(builder: ParameterSpec.Builder) {
   override fun hashCode() = toString().hashCode()
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       emit(CodeWriter(out))
       return out.toString()
     } catch (e: IOException) {
       throw AssertionError()
     }
-
   }
 
   fun toBuilder(name: String = this.name, type: TypeName = this.type): Builder {
@@ -134,7 +133,7 @@ class ParameterSpec private constructor(builder: ParameterSpec.Builder) {
         = method.parameters.map { ParameterSpec.get(it) }
 
     @JvmStatic fun builder(name: String, type: TypeName, vararg modifiers: KModifier): Builder {
-      require(SourceVersion.isName(name)) { "not a valid name: $name" }
+      require(isName(name)) { "not a valid name: $name" }
       return Builder(name, type).addModifiers(*modifiers)
     }
 

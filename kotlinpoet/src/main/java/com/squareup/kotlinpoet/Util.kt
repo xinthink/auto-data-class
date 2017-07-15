@@ -22,6 +22,12 @@ import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 
+internal val NULL_APPENDABLE = object : Appendable {
+  override fun append(charSequence: CharSequence) = this
+  override fun append(charSequence: CharSequence, start: Int, end: Int) = this
+  override fun append(c: Char) = this
+}
+
 internal fun <K, V> Map<K, List<V>>.toImmutableMultimap(): Map<K, List<V>> {
   val result = LinkedHashMap<K, List<V>>()
   for ((key, value) in this) {
@@ -34,35 +40,30 @@ internal fun <K, V> Map<K, List<V>>.toImmutableMultimap(): Map<K, List<V>> {
 internal fun <K, V> Map<K, V>.toImmutableMap(): Map<K, V>
     = Collections.unmodifiableMap(LinkedHashMap(this))
 
-internal fun <T> Collection<T>.toImmutableList() : List<T>
+internal fun <T> Collection<T>.toImmutableList(): List<T>
     = Collections.unmodifiableList(ArrayList(this))
 
 internal fun <T> Collection<T>.toImmutableSet(): Set<T>
     = Collections.unmodifiableSet(LinkedHashSet(this))
 
 internal fun requireExactlyOneOf(modifiers: Set<KModifier>, vararg mutuallyExclusive: KModifier) {
-  var count = 0
-  for (modifier in mutuallyExclusive) {
-    if (modifiers.contains(modifier)) count++
-  }
-  require (count == 1) {
+  val count = mutuallyExclusive.count { modifiers.contains(it) }
+  require(count == 1) {
     "modifiers $modifiers must contain one of ${Arrays.toString(mutuallyExclusive)}"
   }
 }
 
-internal fun characterLiteralWithoutSingleQuotes(c: Char): String {
-  // see https://docs.oracle.com/javase/specs/jls/se7/html/jls-3.html#jls-3.10.6
-  return when {
-    c == '\b' -> "\\b"   // \u0008: backspace (BS)
-    c == '\t' -> "\\t"   // \u0009: horizontal tab (HT)
-    c == '\n' -> "\\n"   // \u000a: linefeed (LF)
-    c == '\r' -> "\\r"   // \u000d: carriage return (CR)
-    c == '\"' -> "\""    // \u0022: double quote (")
-    c == '\'' -> "\\'"   // \u0027: single quote (')
-    c == '\\' -> "\\\\"  // \u005c: backslash (\)
-    isISOControl(c) -> String.format("\\u%04x", c.toInt())
-    else -> Character.toString(c)
-  }
+// see https://docs.oracle.com/javase/specs/jls/se7/html/jls-3.html#jls-3.10.6
+internal fun characterLiteralWithoutSingleQuotes(c: Char) = when {
+  c == '\b' -> "\\b"   // \u0008: backspace (BS)
+  c == '\t' -> "\\t"   // \u0009: horizontal tab (HT)
+  c == '\n' -> "\\n"   // \u000a: linefeed (LF)
+  c == '\r' -> "\\r"   // \u000d: carriage return (CR)
+  c == '\"' -> "\""    // \u0022: double quote (")
+  c == '\'' -> "\\'"   // \u0027: single quote (')
+  c == '\\' -> "\\\\"  // \u005c: backslash (\)
+  isISOControl(c) -> String.format("\\u%04x", c.toInt())
+  else -> Character.toString(c)
 }
 
 /** Returns the string literal representing `value`, including wrapping double quotes.  */
@@ -113,3 +114,55 @@ internal fun stringLiteralWithQuotes(value: String): String {
     return result.toString()
   }
 }
+
+internal fun isIdentifier(name: String): Boolean {
+  return IDENTIFIER_REGEX.matches(name)
+}
+
+internal fun isKeyword(name: String): Boolean {
+  return KEYWORDS.contains(name)
+}
+
+internal fun isName(name: String): Boolean {
+  return name.split("\\.").none { isKeyword(name) }
+}
+
+private val IDENTIFIER_REGEX
+    = ("((\\p{gc=Lu}+|\\p{gc=Ll}+|\\p{gc=Lt}+|\\p{gc=Lm}+|\\p{gc=Lo}+|\\p{gc=Nl}+)+" +
+    "\\d*" +
+    "\\p{gc=Lu}*\\p{gc=Ll}*\\p{gc=Lt}*\\p{gc=Lm}*\\p{gc=Lo}*\\p{gc=Nl}*)" +
+    "|" +
+    "(`[^\n\r`]+`)")
+    .toRegex()
+
+// https://github.com/JetBrains/kotlin/blob/master/core/descriptors/src/org/jetbrains/kotlin/renderer/KeywordStringsGenerated.java
+private val KEYWORDS = setOf(
+    "package",
+    "as",
+    "typealias",
+    "class",
+    "this",
+    "super",
+    "val",
+    "var",
+    "fun",
+    "for",
+    "null",
+    "true",
+    "false",
+    "is",
+    "in",
+    "throw",
+    "return",
+    "break",
+    "continue",
+    "object",
+    "if",
+    "try",
+    "else",
+    "while",
+    "do",
+    "when",
+    "interface",
+    "typeof"
+)

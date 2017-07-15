@@ -15,9 +15,7 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Array
 import java.util.Arrays
 import java.util.Objects
@@ -32,20 +30,31 @@ import kotlin.reflect.KClass
 /** A generated annotation on a declaration.  */
 class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
   val type: TypeName = builder.type
-  val members: Map<String, List<CodeBlock>> = builder.members.toImmutableMultimap()
+  val members = builder.members.toImmutableMultimap()
+  val useSiteTarget: UseSiteTarget? = builder.useSiteTarget
 
   @Throws(IOException::class)
-  internal fun emit(codeWriter: CodeWriter, inline: Boolean) {
+  internal fun emit(codeWriter: CodeWriter, inline: Boolean, asParameter: Boolean = false) {
+    if (!asParameter) {
+      codeWriter.emit("@")
+    }
+    if (useSiteTarget != null) {
+      codeWriter.emit(useSiteTarget.keyword + ":")
+    }
+    codeWriter.emitCode("%T", type)
+
+    if (members.isEmpty() && !asParameter) {
+      // @Singleton
+      return
+    }
+
     val whitespace = if (inline) "" else "\n"
     val memberSeparator = if (inline) ", " else ",\n"
-    if (members.isEmpty()) {
-      // @Singleton
-      codeWriter.emitCode("@%T", type)
-    } else if (members.size == 1 && members.containsKey("value")) {
+
+    codeWriter.emit("(")
+    if (members.size == 1 && members.containsKey("value")) {
       // @Named("foo")
-      codeWriter.emitCode("@%T(", type)
       emitAnnotationValues(codeWriter, whitespace, memberSeparator, members["value"]!!)
-      codeWriter.emit(")")
     } else {
       // Inline:
       //   @Column(name = "updated_at", nullable = false)
@@ -55,18 +64,15 @@ class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
       //       name = "updated_at",
       //       nullable = false
       //   )
-      codeWriter.emitCode("@%T(" + whitespace, type)
-      codeWriter.indent(2)
-      val i = members.entries.iterator()
-      while (i.hasNext()) {
-        val entry = i.next()
+      codeWriter.emit(whitespace).indent(2)
+      members.entries.forEachIndexed { index, entry ->
+        if (index > 0) codeWriter.emit(memberSeparator)
         codeWriter.emitCode("%L = ", entry.key)
         emitAnnotationValues(codeWriter, whitespace, memberSeparator, entry.value)
-        if (i.hasNext()) codeWriter.emit(memberSeparator)
       }
-      codeWriter.unindent(2)
-      codeWriter.emit(whitespace + ")")
+      codeWriter.unindent(2).emit(whitespace)
     }
+    codeWriter.emit(")")
   }
 
   @Throws(IOException::class)
@@ -84,12 +90,7 @@ class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
 
     codeWriter.emit("[" + whitespace)
     codeWriter.indent(2)
-    var first = true
-    for (codeBlock in values) {
-      if (!first) codeWriter.emit(memberSeparator)
-      codeWriter.emitCode(codeBlock)
-      first = false
-    }
+    codeWriter.emitCode(values.joinToCode(separator = memberSeparator))
     codeWriter.unindent(2)
     codeWriter.emit(whitespace + "]")
   }
@@ -99,6 +100,7 @@ class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
     for ((key, value) in members) {
       builder.members.put(key, value.toMutableList())
     }
+    builder.useSiteTarget = useSiteTarget
     return builder
   }
 
@@ -114,19 +116,31 @@ class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
   }
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       val codeWriter = CodeWriter(out)
-      codeWriter.emitCode("%L", this)
+      emit(codeWriter, inline = true, asParameter = false)
       return out.toString()
     } catch (e: IOException) {
       throw AssertionError()
     }
+  }
 
+  enum class UseSiteTarget(internal val keyword: String) {
+    FILE("file"),
+    PROPERTY("property"),
+    FIELD("field"),
+    GET("get"),
+    SET("set"),
+    RECEIVER("receiver"),
+    PARAM("param"),
+    SETPARAM("setparam"),
+    DELEGATE("delegate")
   }
 
   class Builder internal constructor(internal val type: TypeName) {
     internal val members = mutableMapOf<String, MutableList<CodeBlock>>()
+    internal var useSiteTarget: UseSiteTarget? = null
 
     fun addMember(name: String, format: String, vararg args: Any) =
         addMember(name, CodeBlock.of(format, *args))
@@ -147,6 +161,10 @@ class AnnotationSpec private constructor(builder: AnnotationSpec.Builder) {
       is Float -> addMember(memberName, "%Lf", value)
       is Char -> addMember(memberName, "'%L'", characterLiteralWithoutSingleQuotes(value))
       else -> addMember(memberName, "%L", value)
+    }
+
+    fun useSiteTarget(useSiteTarget: UseSiteTarget?) = apply {
+      this.useSiteTarget = useSiteTarget
     }
 
     fun build() = AnnotationSpec(this)

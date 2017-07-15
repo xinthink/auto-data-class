@@ -16,8 +16,6 @@
 package com.squareup.kotlinpoet
 
 import com.google.common.truth.Truth.assertThat
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import org.junit.Assert.fail
 import org.junit.Ignore
 import org.junit.Test
@@ -34,9 +32,9 @@ abstract class AbstractTypesTest {
   protected abstract val elements: Elements
   protected abstract val types: Types
 
-  private fun getElement(clazz: Class<*>) = elements.getTypeElement(clazz.canonicalName)
+  private fun getElement(`class`: Class<*>) = elements.getTypeElement(`class`.canonicalName)
 
-  private fun getMirror(clazz: Class<*>) = getElement(clazz).asType()
+  private fun getMirror(`class`: Class<*>) = getElement(`class`).asType()
 
   @Test fun getBasicTypeMirror() {
     assertThat(getMirror(Any::class.java).asTypeName())

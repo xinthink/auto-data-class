@@ -18,10 +18,8 @@ package com.squareup.kotlinpoet
 import com.google.common.collect.ImmutableMap
 import com.google.common.truth.Truth.assertThat
 import com.google.testing.compile.CompilationRule
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import com.squareup.kotlinpoet.KModifier.INTERNAL
 import com.squareup.kotlinpoet.KModifier.VARARG
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Ignore
@@ -46,12 +44,12 @@ class TypeSpecTest {
 
   @Rule @JvmField val compilation = CompilationRule()
 
-  private fun getElement(clazz: Class<*>): TypeElement {
-    return compilation.elements.getTypeElement(clazz.canonicalName)
+  private fun getElement(`class`: Class<*>): TypeElement {
+    return compilation.elements.getTypeElement(`class`.canonicalName)
   }
 
-  private fun getElement(clazz: KClass<*>): TypeElement {
-    return getElement(clazz.java)
+  private fun getElement(`class`: KClass<*>): TypeElement {
+    return getElement(`class`.java)
   }
 
   @Test fun basic() {
@@ -293,6 +291,27 @@ class TypeSpecTest {
         |
         |class Taco {
         |  @JsonAdapter(Foo::class)
+        |  private val thing: String
+        |}
+        |""".trimMargin())
+  }
+
+  @Test fun annotatedPropertyUseSiteTarget() {
+    val taco = TypeSpec.classBuilder("Taco")
+        .addProperty(PropertySpec.builder("thing", String::class, KModifier.PRIVATE)
+            .addAnnotation(AnnotationSpec.builder(ClassName(tacosPackage, "JsonAdapter"))
+                .addMember("value", "%T::class", ClassName(tacosPackage, "Foo"))
+                .useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
+                .build())
+            .build())
+        .build()
+    assertThat(toString(taco)).isEqualTo("""
+        |package com.squareup.tacos
+        |
+        |import kotlin.String
+        |
+        |class Taco {
+        |  @field:JsonAdapter(Foo::class)
         |  private val thing: String
         |}
         |""".trimMargin())
@@ -812,8 +831,8 @@ class TypeSpecTest {
 
   @Test fun interfaceWithProperties() {
     val taco = TypeSpec.interfaceBuilder("Taco")
-            .addProperty("v", Int::class)
-            .build()
+        .addProperty("v", Int::class)
+        .build()
 
     assertThat(toString(taco)).isEqualTo("""
         |package com.squareup.tacos
@@ -1017,8 +1036,8 @@ class TypeSpecTest {
         |@MealDeal(
         |    price = 500,
         |    options = [
-        |        @Option(name = "taco", meat = Beef::class),
-        |        @Option(name = "quesadilla", meat = Chicken::class)
+        |        Option(name = "taco", meat = Beef::class),
+        |        Option(name = "quesadilla", meat = Chicken::class)
         |    ]
         |)
         |class Menu
@@ -2136,8 +2155,8 @@ class TypeSpecTest {
   @Test fun companionObject() {
     val companion = TypeSpec.companionObjectBuilder()
         .addProperty(PropertySpec.builder("tacos", Int::class)
-                .initializer("%L", 42)
-                .build())
+            .initializer("%L", 42)
+            .build())
         .addFun(FunSpec.builder("test")
             .addModifiers(KModifier.PUBLIC)
             .build())
@@ -2409,6 +2428,43 @@ class TypeSpecTest {
           .addSuperclassConstructorParameter("%S", "foo")
       fail("Exception expected")
     } catch (expected: IllegalStateException) {
+    }
+  }
+
+  @Test fun constructorWithDefaultParamValue() {
+    val type = TypeSpec.classBuilder("Taco")
+        .primaryConstructor(FunSpec.constructorBuilder()
+            .addParameter(ParameterSpec.builder("a", Int::class)
+                .defaultValue("1")
+                .build())
+            .addParameter(ParameterSpec.builder("b", String::class.asTypeName().asNullable())
+                .defaultValue("null")
+                .build())
+            .build())
+        .addProperty(PropertySpec.builder("a", Int::class)
+            .initializer("a")
+            .build())
+        .addProperty(PropertySpec.builder("b", String::class.asTypeName().asNullable())
+            .initializer("b")
+            .build())
+        .build()
+
+    assertThat(toString(type)).isEqualTo("""
+        |package com.squareup.tacos
+        |
+        |import kotlin.Int
+        |import kotlin.String
+        |
+        |class Taco(val a: Int = 1, val b: String? = null)
+        |""".trimMargin())
+  }
+
+  @Test fun requiresNonKeywordName() {
+    try {
+      TypeSpec.enumBuilder("when")
+      fail()
+    } catch (expected: IllegalArgumentException) {
+      assertThat(expected).hasMessage("not a valid name: when")
     }
   }
 

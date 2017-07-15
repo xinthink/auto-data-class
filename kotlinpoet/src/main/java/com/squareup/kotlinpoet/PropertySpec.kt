@@ -15,28 +15,24 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import com.squareup.kotlinpoet.FunSpec.Companion.GETTER
 import com.squareup.kotlinpoet.FunSpec.Companion.SETTER
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
-import javax.lang.model.SourceVersion
 import kotlin.reflect.KClass
 
 /** A generated property declaration.  */
 class PropertySpec private constructor(builder: Builder) {
-  val mutable: Boolean = builder.mutable
-  val name: String = builder.name
-  val type: TypeName = builder.type
-  val kdoc: CodeBlock = builder.kdoc.build()
-  val annotations: List<AnnotationSpec> = builder.annotations.toImmutableList()
-  val modifiers: Set<KModifier> = builder.modifiers.toImmutableSet()
-  val initializer: CodeBlock? = builder.initializer
-  val delegated: Boolean = builder.delegated
-  val getter: FunSpec? = builder.getter
-  val setter: FunSpec? = builder.setter
+  val mutable = builder.mutable
+  val name = builder.name
+  val type = builder.type
+  val kdoc = builder.kdoc.build()
+  val annotations = builder.annotations.toImmutableList()
+  val modifiers = builder.modifiers.toImmutableSet()
+  val initializer = builder.initializer
+  val delegated = builder.delegated
+  val getter = builder.getter
+  val setter = builder.setter
 
   @Throws(IOException::class)
   internal fun emit(codeWriter: CodeWriter, implicitModifiers: Set<KModifier>,
@@ -78,7 +74,7 @@ class PropertySpec private constructor(builder: Builder) {
   override fun hashCode() = toString().hashCode()
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       val codeWriter = CodeWriter(out)
       emit(codeWriter, emptySet<KModifier>())
@@ -105,8 +101,8 @@ class PropertySpec private constructor(builder: Builder) {
     internal val modifiers = mutableListOf<KModifier>()
     internal var initializer: CodeBlock? = null
     internal var delegated = false
-    internal var getter : FunSpec? = null
-    internal var setter : FunSpec? = null
+    internal var getter: FunSpec? = null
+    internal var setter: FunSpec? = null
 
     fun mutable(mutable: Boolean) = apply {
       this.mutable = mutable
@@ -160,13 +156,13 @@ class PropertySpec private constructor(builder: Builder) {
 
     fun getter(getter: FunSpec) = apply {
       require(getter.name == GETTER) { "${getter.name} is not a getter" }
-      check(this.getter == null ) { "getter was already set" }
+      check(this.getter == null) { "getter was already set" }
       this.getter = getter
     }
 
     fun setter(setter: FunSpec) = apply {
       require(setter.name == SETTER) { "${setter.name} is not a setter" }
-      check(this.setter == null ) { "setter was already set" }
+      check(this.setter == null) { "setter was already set" }
       this.setter = setter
     }
 
@@ -175,7 +171,7 @@ class PropertySpec private constructor(builder: Builder) {
 
   companion object {
     @JvmStatic fun builder(name: String, type: TypeName, vararg modifiers: KModifier): Builder {
-      require(SourceVersion.isName(name)) { "not a valid name: $name" }
+      require(isName(name)) { "not a valid name: $name" }
       return Builder(name, type)
           .addModifiers(*modifiers)
     }
@@ -187,7 +183,7 @@ class PropertySpec private constructor(builder: Builder) {
         = builder(name, type.asTypeName(), *modifiers)
 
     @JvmStatic fun varBuilder(name: String, type: TypeName, vararg modifiers: KModifier): Builder {
-      require(SourceVersion.isName(name)) { "not a valid name: $name" }
+      require(isName(name)) { "not a valid name: $name" }
       return Builder(name, type)
           .mutable(true)
           .addModifiers(*modifiers)

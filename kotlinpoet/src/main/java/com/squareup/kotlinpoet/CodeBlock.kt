@@ -15,9 +15,7 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
 import javax.lang.model.element.Element
 import javax.lang.model.type.TypeMirror
@@ -120,14 +118,13 @@ class CodeBlock private constructor(
   override fun hashCode() = toString().hashCode()
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       CodeWriter(out).emitCode(this)
       return out.toString()
     } catch (e: IOException) {
       throw AssertionError()
     }
-
   }
 
   fun toBuilder(): Builder {
@@ -157,7 +154,8 @@ class CodeBlock private constructor(
 
       for (argument in arguments.keys) {
         require(LOWERCASE matches argument) {
-            "argument '$argument' must start with a lowercase character" }
+          "argument '$argument' must start with a lowercase character"
+        }
       }
 
       while (p < format.length) {
@@ -181,7 +179,8 @@ class CodeBlock private constructor(
         if (matchResult != null) {
           val argumentName = matchResult.groupValues[ARG_NAME]
           require(arguments.containsKey(argumentName)) {
-            "Missing named argument for %$argumentName" }
+            "Missing named argument for %$argumentName"
+          }
           val formatChar = matchResult.groupValues[TYPE_NAME].first()
           addArgument(format, formatChar, arguments[argumentName])
           formatParts += "%" + formatChar
@@ -189,7 +188,8 @@ class CodeBlock private constructor(
         } else {
           require(p < format.length - 1) { "dangling % at end" }
           require(isNoArgPlaceholder(format[p + 1])) {
-            "unknown format %${format[p + 1]} at ${p + 1} in '$format'" }
+            "unknown format %${format[p + 1]} at ${p + 1} in '$format'"
+          }
           formatParts += format.substring(p, p + 2)
           p += 2
         }
@@ -232,13 +232,14 @@ class CodeBlock private constructor(
         do {
           require(p < format.length) { "dangling format characters in '$format'" }
           c = format[p++]
-        } while (c >= '0' && c <= '9')
+        } while (c in '0'..'9')
         val indexEnd = p - 1
 
         // If 'c' doesn't take an argument, we're done.
         if (isNoArgPlaceholder(c)) {
           require(indexStart == indexEnd) {
-            "%%, %>, %<, %[, %], and %W may not have an index" }
+            "%%, %>, %<, %[, %], and %W may not have an index"
+          }
           formatParts += "%" + c
           continue
         }
@@ -248,7 +249,7 @@ class CodeBlock private constructor(
         if (indexStart < indexEnd) {
           index = Integer.parseInt(format.substring(indexStart, indexEnd)) - 1
           hasIndexed = true
-          if (args.size > 0) {
+          if (args.isNotEmpty()) {
             indexedParameterCount[index % args.size]++ // modulo is needed, checked below anyway
           }
         } else {
@@ -270,7 +271,8 @@ class CodeBlock private constructor(
 
       if (hasRelative) {
         require(relativeParameterCount >= args.size) {
-            "unused arguments: expected $relativeParameterCount, received ${args.size}" }
+          "unused arguments: expected $relativeParameterCount, received ${args.size}"
+        }
       }
       if (hasIndexed) {
         val unused = mutableListOf<String>()
@@ -382,7 +384,7 @@ class CodeBlock private constructor(
 
 @JvmOverloads
 fun Collection<CodeBlock>.joinToCode(separator: CharSequence = ", ", prefix: CharSequence = "",
-                                   suffix: CharSequence = "" ): CodeBlock {
+                                     suffix: CharSequence = ""): CodeBlock {
   val blocks = toTypedArray()
   val placeholders = Array(blocks.size, { "%L" })
   return CodeBlock.of(placeholders.joinToString(separator, prefix, suffix), *blocks)

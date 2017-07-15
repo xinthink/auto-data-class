@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:JvmName("ClassNames")
+
 package com.squareup.kotlinpoet
 
 import java.io.IOException
-import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.NestingKind.MEMBER
@@ -26,11 +27,18 @@ import javax.lang.model.element.TypeElement
 import kotlin.reflect.KClass
 
 /** A fully-qualified class name for top-level and member classes.  */
-class ClassName private constructor(
+class ClassName internal constructor(
     names: List<String>,
     nullable: Boolean = false,
     annotations: List<AnnotationSpec> = emptyList())
   : TypeName(nullable, annotations), Comparable<ClassName> {
+
+  /**
+   * Returns a class name created from the given parts. For example, calling this with package name
+   * `"java.util"` and simple names `"Map"`, `"Entry"` yields [Map.Entry].
+   */
+  constructor(packageName: String, simpleName: String, vararg simpleNames: String)
+      : this(listOf(packageName, simpleName, *simpleNames))
 
   /** From top to bottom. This will be `["java.util", "Map", "Entry"]` for [Map.Entry].  */
   internal val names = names.toImmutableList()
@@ -40,7 +48,7 @@ class ClassName private constructor(
 
   init {
     for (i in 1 until names.size) {
-      require(SourceVersion.isName(names[i])) { "part ${names[i]} is keyword" }
+      require(isName(names[i])) { "part ${names[i]} is keyword" }
     }
   }
 
@@ -119,31 +127,6 @@ class ClassName private constructor(
   }
 
   companion object {
-    @JvmStatic @JvmName("get")
-    fun Class<*>.asClassName(): ClassName {
-      require(!isPrimitive) { "primitive types cannot be represented as a ClassName" }
-      require(Void.TYPE != this) { "'void' type cannot be represented as a ClassName" }
-      require(!isArray) { "array types cannot be represented as a ClassName" }
-      val names = mutableListOf<String>()
-      var c = this
-      while (true) {
-        names += c.simpleName
-        val enclosing = c.enclosingClass ?: break
-        c = enclosing
-      }
-      // Avoid unreliable Class.getPackage(). https://github.com/square/javapoet/issues/295
-      val lastDot = c.name.lastIndexOf('.')
-      if (lastDot != -1) names += c.name.substring(0, lastDot)
-      names.reverse()
-      return ClassName(names)
-    }
-
-    @JvmStatic @JvmName("get")
-    fun KClass<*>.asClassName(): ClassName {
-      qualifiedName?.let { return bestGuess(it) }
-      throw IllegalArgumentException("$this cannot be represented as a TypeName")
-    }
-
     /**
      * Returns a new [ClassName] instance for the given fully-qualified class name string. This
      * method assumes that the input is ASCII and follows typical Java style (lowercase package
@@ -159,7 +142,7 @@ class ClassName private constructor(
       var p = 0
       while (p < classNameString.length && Character.isLowerCase(classNameString.codePointAt(p))) {
         p = classNameString.indexOf('.', p) + 1
-        require(p != 0) { "couldn't make a guess for ${classNameString}" }
+        require(p != 0) { "couldn't make a guess for $classNameString" }
       }
       names += if (p != 0) classNameString.substring(0, p - 1) else ""
 
@@ -175,45 +158,58 @@ class ClassName private constructor(
       require(names.size >= 2) { "couldn't make a guess for $classNameString" }
       return ClassName(names)
     }
-
-    /**
-     * Returns a class name created from the given parts. For example, calling this with package name
-     * `"java.util"` and simple names `"Map"`, `"Entry"` yields [Map.Entry].
-     */
-    @JvmStatic @JvmName("get")
-    operator fun invoke(
-        packageName: String,
-        simpleName: String,
-        vararg simpleNames: String): ClassName {
-      return ClassName(listOf(packageName, simpleName, *simpleNames))
-    }
-
-    /** Returns the class name for `element`.  */
-    @JvmStatic @JvmName("get")
-    fun TypeElement.asClassName(): ClassName {
-      val names = mutableListOf<String>()
-      var e: Element = this
-      while (isClassOrInterface(e)) {
-        val eType = e as TypeElement
-        require(eType.nestingKind == TOP_LEVEL || eType.nestingKind == MEMBER) {
-          "unexpected type testing"
-        }
-        names += eType.simpleName.toString()
-        e = eType.enclosingElement
-      }
-      names += getPackage(this).qualifiedName.toString()
-      names.reverse()
-      return ClassName(names)
-    }
-
-    private fun isClassOrInterface(e: Element): Boolean = e.kind.isClass || e.kind.isInterface
-
-    private fun getPackage(type: Element): PackageElement {
-      var t = type
-      while (t.kind != ElementKind.PACKAGE) {
-        t = t.enclosingElement
-      }
-      return t as PackageElement
-    }
   }
+}
+
+@JvmName("get")
+fun Class<*>.asClassName(): ClassName {
+  require(!isPrimitive) { "primitive types cannot be represented as a ClassName" }
+  require(Void.TYPE != this) { "'void' type cannot be represented as a ClassName" }
+  require(!isArray) { "array types cannot be represented as a ClassName" }
+  val names = mutableListOf<String>()
+  var c = this
+  while (true) {
+    names += c.simpleName
+    val enclosing = c.enclosingClass ?: break
+    c = enclosing
+  }
+  // Avoid unreliable Class.getPackage(). https://github.com/square/javapoet/issues/295
+  val lastDot = c.name.lastIndexOf('.')
+  if (lastDot != -1) names += c.name.substring(0, lastDot)
+  names.reverse()
+  return ClassName(names)
+}
+
+@JvmName("get")
+fun KClass<*>.asClassName(): ClassName {
+  qualifiedName?.let { return ClassName.bestGuess(it) }
+  throw IllegalArgumentException("$this cannot be represented as a ClassName")
+}
+
+/** Returns the class name for `element`.  */
+@JvmName("get")
+fun TypeElement.asClassName(): ClassName {
+  val names = mutableListOf<String>()
+  var e: Element = this
+  while (isClassOrInterface(e)) {
+    val eType = e as TypeElement
+    require(eType.nestingKind == TOP_LEVEL || eType.nestingKind == MEMBER) {
+      "unexpected type testing"
+    }
+    names += eType.simpleName.toString()
+    e = eType.enclosingElement
+  }
+  names += getPackage(this).qualifiedName.toString()
+  names.reverse()
+  return ClassName(names)
+}
+
+private fun isClassOrInterface(e: Element): Boolean = e.kind.isClass || e.kind.isInterface
+
+private fun getPackage(type: Element): PackageElement {
+  var t = type
+  while (t.kind != ElementKind.PACKAGE) {
+    t = t.enclosingElement
+  }
+  return t as PackageElement
 }

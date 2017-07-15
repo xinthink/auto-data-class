@@ -16,29 +16,32 @@
 package com.squareup.kotlinpoet
 
 import com.google.common.truth.Truth.assertThat
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
+import com.squareup.kotlinpoet.AnnotationSpec.UseSiteTarget.FILE
+import com.squareup.kotlinpoet.AnnotationSpec.UseSiteTarget.SET
 import com.squareup.kotlinpoet.KModifier.VARARG
 import org.junit.Ignore
 import org.junit.Test
 import java.util.Collections
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlin.test.fail
 
 class KotlinFileTest {
   @Test fun importStaticReadmeExample() {
     val hoverboard = ClassName("com.mattel", "Hoverboard")
     val namedBoards = ClassName("com.mattel", "Hoverboard", "Boards")
     val list = List::class.asClassName()
-    val arrayList = ClassName("java.util", "ArrayList")
+    val arrayList = ParameterizedTypeName.get(
+        ClassName("java.util", "ArrayList"), hoverboard)
     val listOfHoverboards = ParameterizedTypeName.get(list, hoverboard)
     val beyond = FunSpec.builder("beyond")
         .returns(listOfHoverboards)
-        .addStatement("%T result = new %T<>()", listOfHoverboards, arrayList)
+        .addStatement("val result = %T()", arrayList)
         .addStatement("result.add(%T.createNimbus(2000))", hoverboard)
         .addStatement("result.add(%T.createNimbus(\"2001\"))", hoverboard)
         .addStatement("result.add(%T.createNimbus(%T.THUNDERBOLT))", hoverboard, namedBoards)
         .addStatement("%T.sort(result)", Collections::class)
-        .addStatement("return result.isEmpty() ? %T.emptyList() : result", Collections::class)
+        .addStatement("return if (result.isEmpty()) %T.emptyList() else result", Collections::class)
         .build()
     val hello = TypeSpec.classBuilder("HelloWorld")
         .addFun(beyond)
@@ -61,12 +64,12 @@ class KotlinFileTest {
         |
         |class HelloWorld {
         |  fun beyond(): List<Hoverboard> {
-        |    List<Hoverboard> result = new ArrayList<>()
+        |    val result = ArrayList<Hoverboard>()
         |    result.add(createNimbus(2000))
         |    result.add(createNimbus("2001"))
         |    result.add(createNimbus(THUNDERBOLT))
         |    sort(result)
-        |    return result.isEmpty() ? emptyList() : result
+        |    return if (result.isEmpty()) emptyList() else result
         |  }
         |}
         |""".trimMargin())
@@ -129,6 +132,28 @@ class KotlinFileTest {
         |
         |  constructor(vararg states: Thread.State) {
         |  }
+        |}
+        |""".trimMargin())
+  }
+
+  @Test fun importTopLevel() {
+    val source = KotlinFile.builder("com.squareup.tacos", "Taco")
+        .addStaticImport("com.squareup.tacos.internal", "INGREDIENTS", "wrap")
+        .addFun(FunSpec.builder("prepareTacos")
+            .returns(ParameterizedTypeName.get(List::class.asClassName(),
+                ClassName("com.squareup.tacos", "Taco")))
+            .addCode("return wrap(INGREDIENTS)\n")
+            .build())
+        .build()
+    assertThat(source.toString()).isEqualTo("""
+        |package com.squareup.tacos
+        |
+        |import com.squareup.tacos.internal.INGREDIENTS
+        |import com.squareup.tacos.internal.wrap
+        |import kotlin.collections.List
+        |
+        |fun prepareTacos(): List<Taco> {
+        |  return wrap(INGREDIENTS)
         |}
         |""".trimMargin())
   }
@@ -610,5 +635,39 @@ class KotlinFileTest {
         |
         |typealias FileTable = Map<String, Int>
         |""".trimMargin())
+  }
+
+  @Test fun fileAnnotations() {
+    val source = KotlinFile.builder("com.squareup.tacos", "Taco")
+        .addFileAnnotation(AnnotationSpec.builder(JvmName::class)
+            .useSiteTarget(FILE)
+            .addMember("value", "%S", "TacoUtils")
+            .build())
+        .addFileAnnotation(JvmMultifileClass::class)
+        .build()
+    assertThat(source.toString()).isEqualTo("""
+        |@file:JvmName("TacoUtils")
+        |@file:JvmMultifileClass
+        |
+        |package com.squareup.tacos
+        |
+        |import kotlin.jvm.JvmMultifileClass
+        |import kotlin.jvm.JvmName
+        |
+        |""".trimMargin())
+  }
+
+  @Test fun fileAnnotationMustHaveCorrectUseSiteTarget() {
+    val builder = KotlinFile.builder("com.squareup.tacos", "Taco")
+    val annotation = AnnotationSpec.builder(JvmName::class)
+        .useSiteTarget(SET)
+        .addMember("value", "%S", "TacoUtils")
+        .build()
+    try {
+      builder.addFileAnnotation(annotation)
+      fail()
+    } catch (e: IllegalStateException) {
+      assertThat(e).hasMessage("Use-site target SET not supported for file annotations.")
+    }
   }
 }

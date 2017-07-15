@@ -114,8 +114,8 @@ class AnnotationSpecTest {
         |        1
         |    ],
         |    l = Override::class,
-        |    j = @AnnotationSpecTest.AnnotationA,
-        |    q = @AnnotationSpecTest.AnnotationC("bar"),
+        |    j = AnnotationSpecTest.AnnotationA(),
+        |    q = AnnotationSpecTest.AnnotationC("bar"),
         |    r = [
         |        Float::class,
         |        Double::class
@@ -149,8 +149,8 @@ class AnnotationSpecTest {
         |        1
         |    ],
         |    l = Override::class,
-        |    j = @AnnotationSpecTest.AnnotationA,
-        |    q = @AnnotationSpecTest.AnnotationC("bar"),
+        |    j = AnnotationSpecTest.AnnotationA(),
+        |    q = AnnotationSpecTest.AnnotationC("bar"),
         |    r = [
         |        Float::class,
         |        Double::class
@@ -227,8 +227,8 @@ class AnnotationSpecTest {
         ", f = 11.1" +
         ", m = [9, 8, 1, 123]" +
         ", l = java.lang.Override::class" +
-        ", j = @com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA" +
-        ", q = @com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationC(\"bar\")" +
+        ", j = com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA()" +
+        ", q = com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationC(\"bar\")" +
         ", r = [kotlin.Float::class, kotlin.Double::class]" +
         ")")
   }
@@ -257,7 +257,7 @@ class AnnotationSpecTest {
         |    ],
         |    o = AnnotationSpecTest.Breakfast.PANCAKES,
         |    p = 1701,
-        |    q = @AnnotationSpecTest.AnnotationC("bar"),
+        |    q = AnnotationSpecTest.AnnotationC("bar"),
         |    r = [
         |        Float::class,
         |        Double::class
@@ -301,7 +301,7 @@ class AnnotationSpecTest {
         |    ],
         |    h = true,
         |    i = AnnotationSpecTest.Breakfast.WAFFLES,
-        |    j = @AnnotationSpecTest.AnnotationA,
+        |    j = AnnotationSpecTest.AnnotationA(),
         |    k = "maple",
         |    l = Override::class,
         |    m = [
@@ -315,7 +315,7 @@ class AnnotationSpecTest {
         |    ],
         |    o = AnnotationSpecTest.Breakfast.PANCAKES,
         |    p = 1701,
-        |    q = @AnnotationSpecTest.AnnotationC("bar"),
+        |    q = AnnotationSpecTest.AnnotationC("bar"),
         |    r = [
         |        Float::class,
         |        Double::class
@@ -323,6 +323,21 @@ class AnnotationSpecTest {
         |)
         |class Taco
         |""".trimMargin())
+  }
+
+  @Test fun useSiteTarget() {
+    val builder = AnnotationSpec.builder(AnnotationA::class)
+    assertThat(builder.build().toString()).isEqualTo("" +
+        "@com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA")
+    builder.useSiteTarget(AnnotationSpec.UseSiteTarget.FIELD)
+    assertThat(builder.build().toString()).isEqualTo("" +
+        "@field:com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA")
+    builder.useSiteTarget(AnnotationSpec.UseSiteTarget.GET)
+    assertThat(builder.build().toString()).isEqualTo("" +
+        "@get:com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA")
+    builder.useSiteTarget(null)
+    assertThat(builder.build().toString()).isEqualTo("" +
+        "@com.squareup.kotlinpoet.AnnotationSpecTest.AnnotationA")
   }
 
   private fun toString(typeSpec: TypeSpec): String {

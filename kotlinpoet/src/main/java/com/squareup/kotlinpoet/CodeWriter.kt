@@ -17,8 +17,6 @@ package com.squareup.kotlinpoet
 
 import java.io.IOException
 import java.util.EnumSet
-import java.util.Locale
-import javax.lang.model.SourceVersion
 
 /** Sentinel value that indicates that no user-provided package has been set.  */
 private val NO_PACKAGE = String()
@@ -26,7 +24,7 @@ private val NO_PACKAGE = String()
 private fun extractMemberName(part: String): String {
   require(Character.isJavaIdentifierStart(part[0])) { "not an identifier: $part" }
   for (i in 1..part.length) {
-    if (!SourceVersion.isIdentifier(part.substring(0, i))) {
+    if (!isIdentifier(part.substring(0, i))) {
       return part.substring(0, i - 1)
     }
   }
@@ -43,8 +41,8 @@ internal class CodeWriter @JvmOverloads constructor(
     private val memberImports: Set<String> = emptySet(),
     private val importedTypes: Map<String, ClassName> = emptyMap()) {
 
-  private val out: LineWrapper = LineWrapper(out, indent, 100)
-  private var indentLevel: Int = 0
+  private val out = LineWrapper(out, indent, 100)
+  private var indentLevel = 0
 
   private var kdoc = false
   private var comment = false
@@ -148,7 +146,7 @@ internal class CodeWriter @JvmOverloads constructor(
     if (modifiers.isEmpty()) return
     for (modifier in EnumSet.copyOf(modifiers)) {
       if (implicitModifiers.contains(modifier)) continue
-      emit(modifier.name.toLowerCase(Locale.US))
+      emit(modifier.keyword)
       emit(" ")
     }
   }
@@ -317,7 +315,7 @@ internal class CodeWriter @JvmOverloads constructor(
     if (o is TypeSpec) {
       o.emit(this, null)
     } else if (o is AnnotationSpec) {
-      o.emit(this, true)
+      o.emit(this, inline = true, asParameter = true)
     } else if (o is CodeBlock) {
       emitCode(o)
     } else {

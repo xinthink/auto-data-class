@@ -15,7 +15,7 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
+import com.squareup.kotlinpoet.AnnotationSpec.UseSiteTarget.FILE
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
@@ -25,36 +25,22 @@ import java.net.URI
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Files
 import java.nio.file.Path
-import javax.lang.model.SourceVersion
 import javax.tools.JavaFileObject
 import javax.tools.JavaFileObject.Kind
 import javax.tools.SimpleJavaFileObject
 import kotlin.reflect.KClass
-
-private val NULL_APPENDABLE = object : Appendable {
-  override fun append(charSequence: CharSequence): Appendable {
-    return this
-  }
-
-  override fun append(charSequence: CharSequence, start: Int, end: Int): Appendable {
-    return this
-  }
-
-  override fun append(c: Char): Appendable {
-    return this
-  }
-}
 
 /**
  * A Kotlin file containing top level objects like classes, objects, functions, properties, and type
  * aliases.
  */
 class KotlinFile private constructor(builder: KotlinFile.Builder) {
-  val fileComment: CodeBlock = builder.fileComment.build()
-  val packageName: String = builder.packageName
-  val fileName: String = builder.fileName
-  val members: List<Any> = builder.members.toList()
-  val skipJavaLangImports: Boolean = builder.skipJavaLangImports
+  val fileAnnotations = builder.fileAnnotations.toImmutableList()
+  val fileComment = builder.fileComment.build()
+  val packageName = builder.packageName
+  val fileName = builder.fileName
+  val members = builder.members.toList()
+  val skipJavaLangImports = builder.skipJavaLangImports
   private val memberImports = builder.memberImports.toImmutableSet()
   private val indent = builder.indent
 
@@ -74,7 +60,8 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
   @Throws(IOException::class)
   fun writeTo(directory: Path) {
     require(Files.notExists(directory) || Files.isDirectory(directory)) {
-        "path $directory exists but is not a directory." }
+      "path $directory exists but is not a directory."
+    }
     var outputDirectory = directory
     if (packageName.isNotEmpty()) {
       for (packageComponent in packageName.split('.').dropLastWhile { it.isEmpty() }) {
@@ -93,6 +80,11 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
 
   @Throws(IOException::class)
   private fun emit(codeWriter: CodeWriter) {
+    if (fileAnnotations.isNotEmpty()) {
+      codeWriter.emitAnnotations(fileAnnotations, inline = false)
+      codeWriter.emit("\n")
+    }
+
     codeWriter.pushPackage(packageName)
 
     if (!fileComment.isEmpty()) {
@@ -174,6 +166,7 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
 
   fun toBuilder(): Builder {
     val builder = Builder(packageName, fileName)
+    builder.fileAnnotations.addAll(fileAnnotations)
     builder.fileComment.add(fileComment)
     builder.members.addAll(this.members)
     builder.skipJavaLangImports = skipJavaLangImports
@@ -184,6 +177,7 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
   class Builder internal constructor(
       internal val packageName: String,
       internal val fileName: String) {
+    internal val fileAnnotations = mutableListOf<AnnotationSpec>()
     internal val fileComment = CodeBlock.builder()
     internal val memberImports = sortedSetOf<String>()
     internal var skipJavaLangImports: Boolean = false
@@ -191,8 +185,26 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
     internal val members = mutableListOf<Any>()
 
     init {
-      require(SourceVersion.isName(fileName)) { "not a valid file name: $fileName" }
+      require(isName(fileName)) { "not a valid file name: $fileName" }
     }
+
+    fun addFileAnnotation(annotationSpec: AnnotationSpec) = apply {
+      when (annotationSpec.useSiteTarget) {
+        FILE -> fileAnnotations += annotationSpec
+        null -> fileAnnotations += annotationSpec.toBuilder().useSiteTarget(FILE).build()
+        else -> error(
+            "Use-site target ${annotationSpec.useSiteTarget} not supported for file annotations.")
+      }
+    }
+
+    fun addFileAnnotation(annotation: ClassName)
+        = addFileAnnotation(AnnotationSpec.builder(annotation).build())
+
+    fun addFileAnnotation(annotation: Class<*>) =
+        addFileAnnotation(annotation.asClassName())
+
+    fun addFileAnnotation(annotation: KClass<*>) =
+        addFileAnnotation(annotation.asClassName())
 
     fun addFileComment(format: String, vararg args: Any) = apply {
       this.fileComment.add(format, *args)
@@ -221,16 +233,23 @@ class KotlinFile private constructor(builder: KotlinFile.Builder) {
         = addStaticImport(
         (constant as java.lang.Enum<*>).getDeclaringClass().asClassName(), constant.name)
 
-    fun addStaticImport(clazz: Class<*>, vararg names: String)
-        = addStaticImport(clazz.asClassName(), *names)
+    fun addStaticImport(`class`: Class<*>, vararg names: String)
+        = addStaticImport(`class`.asClassName(), *names)
 
-    fun addStaticImport(clazz: KClass<*>, vararg names: String)
-        = addStaticImport(clazz.asClassName(), *names)
+    fun addStaticImport(`class`: KClass<*>, vararg names: String)
+        = addStaticImport(`class`.asClassName(), *names)
 
     fun addStaticImport(className: ClassName, vararg names: String) = apply {
       check(names.isNotEmpty()) { "names array is empty" }
       for (name in names) {
         memberImports += className.canonicalName + "." + name
+      }
+    }
+
+    fun addStaticImport(packageName: String, vararg names: String) = apply {
+      check(names.isNotEmpty()) { "names array is empty" }
+      for (name in names) {
+        memberImports += packageName + "." + name
       }
     }
 

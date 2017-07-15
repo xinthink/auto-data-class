@@ -3,8 +3,6 @@ package com.fivemiles.auto.dataclass
 import com.google.auto.common.AnnotationMirrors
 import com.google.auto.common.MoreElements
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import org.jetbrains.annotations.Nullable
 import java.beans.Introspector
 import javax.annotation.processing.ProcessingEnvironment

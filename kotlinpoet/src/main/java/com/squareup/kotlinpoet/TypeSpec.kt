@@ -15,13 +15,9 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.ClassName.Companion.asClassName
 import com.squareup.kotlinpoet.KModifier.PUBLIC
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
-import javax.lang.model.SourceVersion
 import kotlin.reflect.KClass
 
 /** A generated class, interface, or enum declaration.  */
@@ -30,20 +26,19 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
   val name = builder.name
   val anonymousTypeArguments = builder.anonymousTypeArguments
   val kdoc = builder.kdoc.build()
-  val annotations: List<AnnotationSpec> = builder.annotations.toImmutableList()
-  val modifiers: Set<KModifier> = builder.modifiers.toImmutableSet()
-  val typeVariables: List<TypeVariableName> = builder.typeVariables.toImmutableList()
-  val companionObject: TypeSpec? = builder.companionObject
+  val annotations = builder.annotations.toImmutableList()
+  val modifiers = builder.modifiers.toImmutableSet()
+  val typeVariables = builder.typeVariables.toImmutableList()
+  val companionObject = builder.companionObject
   val primaryConstructor = builder.primaryConstructor
   val superclass = builder.superclass
-  val superclassConstructorParameters: List<CodeBlock> =
-      builder.superclassConstructorParameters.toImmutableList()
-  val superinterfaces: List<TypeName> = builder.superinterfaces.toImmutableList()
-  val enumConstants: Map<String, TypeSpec> = builder.enumConstants.toImmutableMap()
-  val propertySpecs: List<PropertySpec> = builder.propertySpecs.toImmutableList()
+  val superclassConstructorParameters = builder.superclassConstructorParameters.toImmutableList()
+  val superinterfaces = builder.superinterfaces.toImmutableList()
+  val enumConstants = builder.enumConstants.toImmutableMap()
+  val propertySpecs = builder.propertySpecs.toImmutableList()
   val initializerBlock = builder.initializerBlock.build()
-  val funSpecs: List<FunSpec> = builder.funSpecs.toImmutableList()
-  val typeSpecs: List<TypeSpec> = builder.typeSpecs.toImmutableList()
+  val funSpecs = builder.funSpecs.toImmutableList()
+  val typeSpecs = builder.typeSpecs.toImmutableList()
 
   fun toBuilder(): Builder {
     val builder = Builder(kind, name, anonymousTypeArguments)
@@ -128,6 +123,7 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
             val property = constructorProperties[param.name]
             if (property != null) {
               property.emit(codeWriter, setOf(PUBLIC), withInitializer = false, inline = true)
+              param.emitDefaultValue(codeWriter)
             } else {
               param.emit(codeWriter)
             }
@@ -219,9 +215,7 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
         firstMember = false
       }
 
-      companionObject?.let {
-        it.emit(codeWriter, null)
-      }
+      companionObject?.emit(codeWriter, null)
 
       codeWriter.unindent()
       codeWriter.popType()
@@ -284,7 +278,7 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
   }
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       val codeWriter = CodeWriter(out)
       emit(codeWriter, null)
@@ -337,8 +331,8 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
     internal val annotations = mutableListOf<AnnotationSpec>()
     internal val modifiers = mutableListOf<KModifier>()
     internal val typeVariables = mutableListOf<TypeVariableName>()
-    internal var primaryConstructor : FunSpec? = null
-    internal var companionObject : TypeSpec? = null
+    internal var primaryConstructor: FunSpec? = null
+    internal var companionObject: TypeSpec? = null
     internal var superclass: TypeName = ANY
     internal val superclassConstructorParameters = mutableListOf<CodeBlock>()
     internal val superinterfaces = mutableListOf<TypeName>()
@@ -349,7 +343,7 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
     internal val typeSpecs = mutableListOf<TypeSpec>()
 
     init {
-      require(name == null || SourceVersion.isName(name)) { "not a valid name: $name" }
+      require(name == null || isName(name)) { "not a valid name: $name" }
     }
 
     fun addKdoc(format: String, vararg args: Any) = apply {
@@ -453,7 +447,7 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
       check(kind == Kind.ENUM) { "${this.name} is not enum" }
       require(typeSpec.anonymousTypeArguments != null) {
           "enum constants must have anonymous type arguments" }
-      require(SourceVersion.isName(name)) { "not a valid enum constant: $name" }
+      require(isName(name)) { "not a valid enum constant: $name" }
       enumConstants.put(name, typeSpec)
     }
 
@@ -493,7 +487,8 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
         requireExactlyOneOf(funSpec.modifiers, KModifier.PUBLIC, KModifier.PRIVATE)
       } else if (kind == Kind.ANNOTATION) {
         check(funSpec.modifiers == kind.implicitFunctionModifiers) {
-            "$kind $name.${funSpec.name} requires modifiers ${kind.implicitFunctionModifiers}" }
+          "$kind $name.${funSpec.name} requires modifiers ${kind.implicitFunctionModifiers}"
+        }
       }
       funSpecs += funSpec
     }
@@ -508,18 +503,21 @@ class TypeSpec private constructor(builder: TypeSpec.Builder) {
 
     fun build(): TypeSpec {
       require(kind != Kind.ENUM || enumConstants.isNotEmpty()) {
-          "at least one enum constant is required for $name" }
+        "at least one enum constant is required for $name"
+      }
 
       val isAbstract = modifiers.contains(KModifier.ABSTRACT) || kind != Kind.CLASS
       for (funSpec in funSpecs) {
         require(isAbstract || !funSpec.modifiers.contains(KModifier.ABSTRACT)) {
-            "non-abstract type $name cannot declare abstract function ${funSpec.name}" }
+          "non-abstract type $name cannot declare abstract function ${funSpec.name}"
+        }
       }
 
       val superclassIsAny = superclass == ANY
       val interestingSupertypeCount = (if (superclassIsAny) 0 else 1) + superinterfaces.size
       require(anonymousTypeArguments == null || interestingSupertypeCount <= 1) {
-          "anonymous type has too many supertypes" }
+        "anonymous type has too many supertypes"
+      }
 
       return TypeSpec(this)
     }

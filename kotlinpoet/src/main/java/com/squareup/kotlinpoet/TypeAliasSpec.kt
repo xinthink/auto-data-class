@@ -15,18 +15,15 @@
  */
 package com.squareup.kotlinpoet
 
-import com.squareup.kotlinpoet.TypeName.Companion.asTypeName
 import java.io.IOException
-import java.io.StringWriter
 import java.lang.reflect.Type
-import javax.lang.model.SourceVersion
 import kotlin.reflect.KClass
 
 /** A generated typealias declaration */
 class TypeAliasSpec private constructor(builder: TypeAliasSpec.Builder) {
-  val name: String = builder.name
-  val type: TypeName = builder.type
-  val modifiers: Set<KModifier> = builder.modifiers.toImmutableSet()
+  val name = builder.name
+  val type = builder.type
+  val modifiers = builder.modifiers.toImmutableSet()
 
   @Throws(IOException::class)
   internal fun emit(codeWriter: CodeWriter) {
@@ -45,7 +42,7 @@ class TypeAliasSpec private constructor(builder: TypeAliasSpec.Builder) {
   override fun hashCode() = toString().hashCode()
 
   override fun toString(): String {
-    val out = StringWriter()
+    val out = StringBuilder()
     try {
       val codeWriter = CodeWriter(out)
       emit(codeWriter)
@@ -67,7 +64,7 @@ class TypeAliasSpec private constructor(builder: TypeAliasSpec.Builder) {
     internal var modifiers: MutableSet<KModifier> = mutableSetOf()
 
     init {
-      require(SourceVersion.isName(name)) { "not a valid name: $name" }
+      require(isName(name)) { "not a valid name: $name" }
     }
 
     fun visibility(modifier: KModifier) = apply {
