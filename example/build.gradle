@@ -2,6 +2,11 @@ apply plugin: 'kotlin-kapt'
 
 dependencies {
     compile project(':lib')
+    compile "com.google.code.gson:gson:$gson_version"
+
     kapt project(':processor')
     compileOnly project(':processor')
+
+    kaptTest project(':processor')
+    testCompileOnly project(':processor')
 }

@@ -21,12 +21,11 @@ import java.util.*
 
     val city: String
 
-// TODO allow properties with default implement
-//    /**
-//     * Derived property
-//     */
-//    val fullAddress: String
-//        get() = if (street != null) "$street, $city" else city
+    /**
+     * Derived property
+     */
+    val fullAddress: String
+        get() = if (street != null) "$street, $city" else city
 
     companion object {
         /**  factory method */

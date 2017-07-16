@@ -33,7 +33,7 @@ Just like how you'll use [AutoValue], it's convenient to write factory methods o
 ```kotlin
 @DataClass interface Address {
 ...
-    /** derived property */
+    /** derived properties */
     val fullAddress: String
         get() = if (street != null) "$street, $city" else city
         
@@ -69,8 +69,10 @@ Furthermore, you can customize the generated code with the `@DataClassProp` anno
 }
 ```
 
+See test cases of the `example` module for more details.
+
 ## Integration
-The work is still in progress, so it's not published to any repository yet, you have to build it from the source.
+The work is still in progress, so it's not published to any repository yet, you have to build it from source.
 - checkout the repo
 - setup gradle scripts
 - kapt

@@ -1,12 +1,13 @@
 package com.fivemiles.auto.dataclass
 
-import com.google.auto.common.AnnotationMirrors
-import com.google.auto.common.MoreElements
+import com.google.auto.common.AnnotationMirrors.getAnnotationValue
+import com.google.auto.common.MoreElements.*
 import com.squareup.kotlinpoet.*
 import org.jetbrains.annotations.Nullable
 import java.beans.Introspector
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeKind
 
@@ -53,7 +54,7 @@ internal class DataClassGenerator(
      */
     @Suppress("UNCHECKED_CAST")
     fun generate(element: TypeElement): TypeSpec {
-        val getters = propertyMethodsIn(MoreElements.getLocalAndInheritedMethods(element, typeUtils, elementUtils))
+        val getters = propertyMethodsIn(element, getLocalAndInheritedMethods(element, typeUtils, elementUtils))
         val properties = propertyNameToMethodMap(getters)
         val dataClassSimpleName = generatedClassName(element.simpleName, DATA_CLASS_NAME_SUFFIX)
         val dataClassName = element.asClassName().peerClass(dataClassSimpleName)
@@ -70,9 +71,9 @@ internal class DataClassGenerator(
 
                         // default value
                         val ctorParamBuilder = ParameterSpec.builder(propName, propType)
-                        val propDefMirror = MoreElements.getAnnotationMirror(it.value, DataClassProp::class.java).orNull()
+                        val propDefMirror = getAnnotationMirror(it.value, DataClassProp::class.java).orNull()
                         if (propDefMirror != null) {
-                            val defaultValue = AnnotationMirrors.getAnnotationValue(propDefMirror,
+                            val defaultValue = getAnnotationValue(propDefMirror,
                                     DataClassProp::defaultValueLiteral.name).value as String
                             if (defaultValue.isNotBlank()) {
                                 ctorParamBuilder.defaultValue("%L", defaultValue)
@@ -94,15 +95,32 @@ internal class DataClassGenerator(
         return builder.build()
     }
 
-    private fun propertyMethodsIn(methods: Set<ExecutableElement>?): Set<ExecutableElement> =
+    private fun propertyMethodsIn(element: TypeElement, methods: Set<ExecutableElement>?): Set<ExecutableElement> =
             when (methods) {
                 null -> setOf()
                 else -> methods.filter {
                     it.parameters.isEmpty() &&
+                            Modifier.ABSTRACT in it.modifiers &&
                             it.returnType?.kind != TypeKind.VOID &&
+                            !hasDefaultImplement(element, it) &&
                             objectMethodToOverride(it) === DefaultMethod.NONE
                 }.toSet()
             }
+
+    private fun hasDefaultImplement(element: TypeElement, method: ExecutableElement): Boolean {
+        val implCls = findDefaultImplement(element) ?: return false
+        return implCls.enclosedElements.any {
+            it is ExecutableElement &&
+                    Modifier.ABSTRACT !in it.modifiers &&
+                    it.simpleName == method.simpleName &&
+                    typeUtils.isSameType(it.returnType, method.returnType)
+        }
+    }
+
+    private fun findDefaultImplement(element: TypeElement): TypeElement? =
+            element.enclosedElements.find {
+                it is TypeElement && "${it.simpleName}" == "DefaultImpls"
+            } as TypeElement?
 
     private fun objectMethodToOverride(method: ExecutableElement): DefaultMethod {
         val name = method.simpleName.toString()
@@ -142,7 +160,7 @@ internal class DataClassGenerator(
 
     private fun propertyType(propertyMethod: ExecutableElement): TypeName {
         val type = propertyMethod.returnType.asTypeName()
-        return if (MoreElements.isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
+        return if (isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
     }
 
     private fun gettersAllPrefixed(methods: Set<ExecutableElement>) = prefixedGettersIn(methods).size == methods.size
