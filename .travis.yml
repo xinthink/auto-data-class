@@ -8,7 +8,7 @@ addons:
     packages:
       - oracle-java8-installer # Updates JDK 8 to the latest available.
 
-script: ./gradlew check
+script: ./gradlew check --no-daemon --console=plain --continue
 
 branches:
   except:
