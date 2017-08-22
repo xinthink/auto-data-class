@@ -4,8 +4,7 @@ dependencies {
     compile project(':lib')
     compile 'com.google.auto:auto-common:0.8'
 //    compile 'com.google.auto.service:auto-service:1.0-rc3'
-//    compile 'com.squareup:kotlinpoet:0.3.0'
-    compile project(':kotlinpoet')
+    compile 'com.squareup:kotlinpoet:0.4.0'
     compile "com.google.code.gson:gson:$gson_version"
 
     testCompile 'com.google.truth:truth:0.27'

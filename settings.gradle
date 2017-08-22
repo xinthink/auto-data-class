@@ -1,1 +1,1 @@
-include 'example', ':processor', ':kotlinpoet', ':lib'
+include 'example', ':processor', ':lib'
