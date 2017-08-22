@@ -20,7 +20,7 @@ import javax.lang.model.element.TypeElement
  */
 internal class GsonTypeAdapterGenerator(
         processingEnv: ProcessingEnvironment,
-        val errorReporter: ErrorReporter) {
+        private val errorReporter: ErrorReporter) {
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
@@ -86,13 +86,13 @@ internal class GsonTypeAdapterGenerator(
 
     /** implements the [TypeAdapter.read] method */
     private fun gsonReaderFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {
-        val paramNameReader = "jsonReader"
+        val paramJsonReader = "jsonReader"
         return FunSpec.builder("read")
                 .addModifiers(KModifier.OVERRIDE)
-                .addParameter(paramNameReader, JsonReader::class)
+                .addParameter(paramJsonReader, JsonReader::class)
                 .returns(type.asClassName().asNullable())
-                .beginControlFlow("if ($paramNameReader.peek() == $QN_GSON_TOKEN_NULL)")
-                .addStatement("$paramNameReader.nextNull()")
+                .beginControlFlow("if ($paramJsonReader.peek() == $QN_GSON_TOKEN_NULL)")
+                .addStatement("$paramJsonReader.nextNull()")
                 .addStatement("return null")
                 .endControlFlow()
                 .addStatement("%W")
@@ -107,21 +107,19 @@ internal class GsonTypeAdapterGenerator(
 
                     // read json stream
                     addStatement("%W")
-                    addStatement("$paramNameReader.beginObject()")
-                    beginControlFlow("while ($paramNameReader.hasNext())")
-                    beginControlFlow("if ($paramNameReader.peek() == $QN_GSON_TOKEN_NULL)")
-                    addStatement("$paramNameReader.nextNull()")
+                    addStatement("$paramJsonReader.beginObject()")
+                    beginControlFlow("while ($paramJsonReader.hasNext())")
+                    beginControlFlow("if ($paramJsonReader.peek() == $QN_GSON_TOKEN_NULL)")
+                    addStatement("$paramJsonReader.nextNull()")
                     addStatement("continue")
                     endControlFlow()
 
-                    beginControlFlow("when ($paramNameReader.nextName())")
-                    propertyMethods.forEach { (p) ->
-                        addStatement("%S -> $p = ${p}Adapter.read($paramNameReader)", p)
-                    }
-                    addStatement("else -> $paramNameReader.skipValue()")
+                    beginControlFlow("when ($paramJsonReader.nextName())")
+                    propertyMethods.forEach { (p, m) -> generatePropertyReader(paramJsonReader, p, m) }
+                    addStatement("else -> $paramJsonReader.skipValue()")
                     endControlFlow()
                     endControlFlow()
-                    addStatement("$paramNameReader.endObject()\n")
+                    addStatement("$paramJsonReader.endObject()\n")
 
                     // null safety check
                     propertyMethods
@@ -133,9 +131,29 @@ internal class GsonTypeAdapterGenerator(
                             }
 
                     addStatement("return $concreteDataClassSimpleName(%L)",
-                            propertyMethods.map { (p) -> p }.joinToString(", "))
+                            propertyMethods.keys.joinToString())
                 }
                 .build()
+    }
+
+    private fun FunSpec.Builder.generatePropertyReader(paramJsonReader: String,
+                                                       propName: String,
+                                                       propMethod: ExecutableElement) {
+        // preferred json field name
+        addStatement("%S -> $propName = ${propName}Adapter.read($paramJsonReader)", propName)
+
+        // alternatives if any
+        val propDefMirror = getAnnotationMirror(propMethod, DataClassProp::class.java).orNull()
+        if (propDefMirror != null) {
+            @Suppress("UNCHECKED_CAST")
+            val alternativeNames = getAnnotationValue(propDefMirror,
+                    DataClassProp::jsonFieldAlternate.name).value as List<Any>
+            if (alternativeNames.size > 1) {
+                addStatement("in arrayOf(%L) -> $propName = ${propName}Adapter.read($paramJsonReader)", alternativeNames)
+            } else if (alternativeNames.isNotEmpty()) {
+                addStatement("%L -> $propName = ${propName}Adapter.read($paramJsonReader)", alternativeNames)
+            }
+        }
     }
 
     private fun gsonWriterFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {

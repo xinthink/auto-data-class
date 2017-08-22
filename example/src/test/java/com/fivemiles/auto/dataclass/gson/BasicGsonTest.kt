@@ -1,10 +1,10 @@
-package com.fivemiles.auto.dataclass
+package com.fivemiles.auto.dataclass.gson
 
+import com.fivemiles.auto.dataclass.DataClass
+import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
-import com.google.gson.TypeAdapterFactory
-import com.google.gson.reflect.TypeToken
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -35,21 +35,12 @@ import org.junit.Test
 /**
  * The most simple case of data class
  */
-class SimpleGsonTest {
+class BasicGsonTest {
     lateinit var gson: Gson
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(object : TypeAdapterFactory {
-                    @Suppress("UNCHECKED_CAST")
-                    override fun <T : Any?> create(gson: Gson, type: TypeToken<T>?): TypeAdapter<T>? {
-                        val rawType = type?.rawType ?: return null
-                        return when {
-                            GsonData::class.java.isAssignableFrom(rawType) -> GsonData.typeAdapter(gson)
-                            else -> null
-                        } as TypeAdapter<T>?
-                    }
-                })
+                .registerTypeAdapterFactory(TestTypeAdapterFactory())
                 .create()
     }
 
@@ -81,7 +72,7 @@ class SimpleGsonTest {
         |  "greeting": "Hi"
         |}""".trimMargin().replace(Regex("\\s"), "")
 
-        val json = gson.toJson(DC_SimpleData("Jon", "Snow", "Hi"))
+        val json = gson.toJson(DC_GsonData("Jon", "Snow", "Hi"))
         assertEquals(expectedJson, json)
     }
 
@@ -91,7 +82,7 @@ class SimpleGsonTest {
         |  "greeting": "Hello"
         |}""".trimMargin().replace(Regex("\\s"), "")
 
-        val json = gson.toJson(DC_SimpleData("World", null, "Hello"))
+        val json = gson.toJson(DC_GsonData("World", null, "Hello"))
         assertEquals(expectedJson, json)
     }
 }
