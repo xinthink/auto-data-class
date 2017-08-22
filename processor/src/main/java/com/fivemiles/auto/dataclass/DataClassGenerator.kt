@@ -40,8 +40,8 @@ internal var TypeSpec.Builder.simpleName: String
  * Created by ywu on 2017/7/10.
  */
 internal class DataClassGenerator(
-        val processingEnv: ProcessingEnvironment,
-        val errorReporter: ErrorReporter) {
+        processingEnv: ProcessingEnvironment,
+        private val errorReporter: ErrorReporter) {
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
@@ -62,37 +62,41 @@ internal class DataClassGenerator(
                 .apply { this.simpleName = dataClassSimpleName }  // record the generated class name, for retrieval later
                 .addSuperinterface(element.asClassName())
                 .addModifiers(KModifier.DATA, KModifier.INTERNAL)
-                .apply {
-                    // add stuff with properties
-                    val constructorBuilder = FunSpec.constructorBuilder()
-                    properties.forEach {
-                        val propName = it.key
-                        val propType = propertyType(it.value)
-
-                        // default value
-                        val ctorParamBuilder = ParameterSpec.builder(propName, propType)
-                        val propDefMirror = getAnnotationMirror(it.value, DataClassProp::class.java).orNull()
-                        if (propDefMirror != null) {
-                            val defaultValue = getAnnotationValue(propDefMirror,
-                                    DataClassProp::defaultValueLiteral.name).value as String
-                            if (defaultValue.isNotBlank()) {
-                                ctorParamBuilder.defaultValue("%L", defaultValue)
-                            }
-                        }
-
-                        constructorBuilder.addParameter(ctorParamBuilder.build())
-                        addProperty(PropertySpec.builder(propName, propType)
-                                .addModifiers(KModifier.OVERRIDE)
-                                .initializer(propName)
-                                .build())
-                    }
-
-                    primaryConstructor(constructorBuilder.build())
-                }
+                .generateProperties(properties)
 
         // generates the Gson TypeAdapter
         gsonTypeAdapterGenerator.generate(element, properties, builder)
         return builder.build()
+    }
+
+    // add stuff with properties
+    private fun TypeSpec.Builder.generateProperties(
+            properties: Map<String, ExecutableElement>
+    ): TypeSpec.Builder {
+        val constructorBuilder = FunSpec.constructorBuilder()
+        properties.forEach {
+            val propName = it.key
+            val propType = propertyType(it.value)
+
+            // default value
+            val ctorParamBuilder = ParameterSpec.builder(propName, propType)
+            val propDefMirror = getAnnotationMirror(it.value, DataClassProp::class.java).orNull()
+            if (propDefMirror != null) {
+                val defaultValue = getAnnotationValue(propDefMirror,
+                        DataClassProp::defaultValueLiteral.name).value as String
+                if (defaultValue.isNotBlank()) {
+                    ctorParamBuilder.defaultValue("%L", defaultValue)
+                }
+            }
+
+            constructorBuilder.addParameter(ctorParamBuilder.build())
+            addProperty(PropertySpec.builder(propName, propType)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .initializer(propName)
+                    .build())
+        }
+
+        return primaryConstructor(constructorBuilder.build())
     }
 
     private fun propertyMethodsIn(element: TypeElement, methods: Set<ExecutableElement>?): Set<ExecutableElement> =
