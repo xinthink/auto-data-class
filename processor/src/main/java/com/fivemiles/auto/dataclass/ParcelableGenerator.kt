@@ -97,22 +97,23 @@ internal class ParcelableGenerator(
     private fun CodeBlock.Builder.readValue(sourceParam: String, type: TypeName): CodeBlock.Builder {
         val parcelableType = parcelableType(type)
 
-        fun CodeBlock.Builder.addSimpleRead(strType: String) {
-            add("%L.read%L()", sourceParam, strType)
+        fun CodeBlock.Builder.addSimpleRead(serializedType: String,
+                                            dataType: String = serializedType) {
+            add("%L.read%L()", sourceParam, serializedType)
+            if (serializedType != dataType) add(".to%L()", dataType)
         }
 
         fun CodeBlock.Builder.addExplicitRead(strType: String, useClassLoader: Boolean = true) {
             if (useClassLoader)
                 add("%L.read%L(%T::class.java.classLoader) as %T", sourceParam, strType, type, type)
-            else
-                add("%L.read%L() as %T", sourceParam, strType, type)
+            else add("%L.read%L() as %T", sourceParam, strType, type)
         }
 
         when (parcelableType) {
             BYTE -> addSimpleRead("Byte")
             INT -> addSimpleRead("Int")
-            SHORT -> addExplicitRead("Int", false)
-            CHAR -> addExplicitRead("Int", false)
+            SHORT -> addSimpleRead("Int", "Short")
+            CHAR -> addSimpleRead("Int", "Char")
             LONG -> addSimpleRead("Long")
             FLOAT -> addSimpleRead("Float")
             DOUBLE -> addSimpleRead("Double")

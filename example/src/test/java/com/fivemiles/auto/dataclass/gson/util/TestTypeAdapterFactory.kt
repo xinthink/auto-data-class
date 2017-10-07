@@ -1,6 +1,7 @@
 package com.fivemiles.auto.dataclass.gson.util
 
 import com.fivemiles.auto.dataclass.gson.AdaptiveImage
+import com.fivemiles.auto.dataclass.gson.FledgedGsonData
 import com.fivemiles.auto.dataclass.gson.GsonData
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
@@ -21,6 +22,8 @@ class TestTypeAdapterFactory : TypeAdapterFactory {
                 GsonData.typeAdapter(gson)
             AdaptiveImage::class.java.isAssignableFrom(rawType) ->
                 AdaptiveImage.typeAdapter(gson)
+            FledgedGsonData::class.java.isAssignableFrom(rawType) ->
+                FledgedGsonData.typeAdapter(gson)
             else -> null
         } as TypeAdapter<T>?
     }

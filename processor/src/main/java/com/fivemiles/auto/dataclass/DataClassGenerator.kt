@@ -1,10 +1,11 @@
 package com.fivemiles.auto.dataclass
 
 import com.google.auto.common.AnnotationMirrors.getAnnotationValue
-import com.google.auto.common.MoreElements.*
+import com.google.auto.common.MoreElements.getAnnotationMirror
+import com.google.auto.common.MoreElements.getLocalAndInheritedMethods
 import com.squareup.kotlinpoet.*
-import org.jetbrains.annotations.Nullable
 import java.beans.Introspector
+import javax.annotation.Generated
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Modifier
@@ -64,6 +65,13 @@ internal class DataClassGenerator(
         val builder = TypeSpec.classBuilder(dataClassName)
                 .addSuperinterface(element.asClassName())
                 .addModifiers(KModifier.DATA, KModifier.INTERNAL)
+                .addAnnotation(AnnotationSpec.builder(Generated::class)
+                        .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
+                        .build())
+                .addAnnotation(AnnotationSpec.builder(Suppress::class)
+//                        .addMember("names", "*arrayOf(%S)", "UNCHECKED_CAST")
+                        .addMember("value", "\"UNCHECKED_CAST\"")
+                        .build())
                 .generateProperties(properties)
 
         // add extra facets to the data class
@@ -82,7 +90,7 @@ internal class DataClassGenerator(
         val constructorBuilder = FunSpec.constructorBuilder()
         properties.forEach {
             val propName = it.key
-            val propType = propertyType(it.value)
+            val propType = parsePropertyType(it.value)
 
             // default value
             val ctorParamBuilder = ParameterSpec.builder(propName, propType)
@@ -166,11 +174,6 @@ internal class DataClassGenerator(
             }
         }
         return map
-    }
-
-    private fun propertyType(propertyMethod: ExecutableElement): TypeName {
-        val type = propertyMethod.returnType.asTypeName()
-        return if (isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
     }
 
     private fun gettersAllPrefixed(methods: Set<ExecutableElement>) = prefixedGettersIn(methods).size == methods.size

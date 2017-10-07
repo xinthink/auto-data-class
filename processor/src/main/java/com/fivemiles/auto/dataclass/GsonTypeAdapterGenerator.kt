@@ -1,14 +1,14 @@
 package com.fivemiles.auto.dataclass
 
 import com.google.auto.common.AnnotationMirrors.getAnnotationValue
-import com.google.auto.common.MoreElements
 import com.google.auto.common.MoreElements.getAnnotationMirror
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
+import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 import com.squareup.kotlinpoet.*
-import org.jetbrains.annotations.Nullable
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
@@ -50,7 +50,7 @@ internal class GsonTypeAdapterGenerator(
     /** define default value / typeAdapter for each property */
     private fun propDefaultAndAdapter(p: String, m: ExecutableElement): List<PropertySpec> {
         val propDefMirror = getAnnotationMirror(m, DataClassProp::class.java).orNull()
-        val propType = propertyType(m)
+        val propType = parsePropertyType(m)
 
         // default value
         val defaultValueProp = PropertySpec.builder("default${p.capitalize()}", propType.asNullable())
@@ -68,11 +68,16 @@ internal class GsonTypeAdapterGenerator(
 
         // typeAdapter
         val nonNullPropType = propType.asNonNullable()
-        val typeAdapterProp = PropertySpec.builder("${p}Adapter",
-                ParameterizedTypeName.get(
-                        TypeAdapter::class.asClassName(), nonNullPropType))
+        val adapterType = ParameterizedTypeName.get(TypeAdapter::class.asClassName(), nonNullPropType)
+        val typeAdapterProp = PropertySpec.builder("${p}Adapter", adapterType)
                 .addModifiers(KModifier.PRIVATE)
-                .initializer("gson.getAdapter(%T::class.java)", nonNullPropType)
+                .apply {
+                    // TypeAdapter delegate
+                    val adapteeTypeBlock = dumpTypeToken(nonNullPropType)
+                    if (nonNullPropType is ParameterizedTypeName)
+                        delegate("lazy { gson.getAdapter(%L) as %T }", adapteeTypeBlock, adapterType)
+                    else delegate("lazy { gson.getAdapter(%L) }", adapteeTypeBlock)
+                }
                 .build()
 
         return listOf(defaultValueProp, typeAdapterProp)
@@ -85,7 +90,7 @@ internal class GsonTypeAdapterGenerator(
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter(paramJsonReader, JsonReader::class)
                 .returns(type.asClassName().asNullable())
-                .beginControlFlow("if ($paramJsonReader.peek() == $QN_GSON_TOKEN_NULL)")
+                .beginControlFlow("if ($paramJsonReader.peek() == %T.NULL)", JsonToken::class)
                 .addStatement("$paramJsonReader.nextNull()")
                 .addStatement("return null")
                 .endControlFlow()
@@ -93,7 +98,7 @@ internal class GsonTypeAdapterGenerator(
                 .apply {
                     // define local variables, initialized with default values
                     propertyMethods.forEach { (p, m) ->
-                        val propType = propertyType(m)
+                        val propType = parsePropertyType(m)
                         val nullablePropType = propType.asNullable()
 
                         addStatement("var $p: %T = default${p.capitalize()}", nullablePropType)
@@ -103,7 +108,7 @@ internal class GsonTypeAdapterGenerator(
                     addStatement("%W")
                     addStatement("$paramJsonReader.beginObject()")
                     beginControlFlow("while ($paramJsonReader.hasNext())")
-                    beginControlFlow("if ($paramJsonReader.peek() == $QN_GSON_TOKEN_NULL)")
+                    beginControlFlow("if ($paramJsonReader.peek() == %T.NULL)", JsonToken::class)
                     addStatement("$paramJsonReader.nextNull()")
                     addStatement("continue")
                     endControlFlow()
@@ -117,7 +122,7 @@ internal class GsonTypeAdapterGenerator(
 
                     // null safety check
                     propertyMethods
-                            .filter { (_, m) -> !propertyType(m).nullable }
+                            .filter { (_, m) -> !parsePropertyType(m).nullable }
                             .forEach { (p) ->
                                 beginControlFlow("if ($p == null)")
                                 addStatement("throw IllegalArgumentException(%S)", "$p must not be null!")
@@ -172,19 +177,46 @@ internal class GsonTypeAdapterGenerator(
                 .build()
     }
 
-    private fun propertyType(propertyMethod: ExecutableElement): TypeName {
-        val type = propertyMethod.returnType.asTypeName()
-        return if (MoreElements.isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
-    }
+    private fun dumpTypeToken(propType: TypeName,
+                              asType: Boolean = false  // produce a `Type` instead of a `TypeToken`
+    ) = CodeBlock.builder()
+            .apply {
+                if (propType is ParameterizedTypeName)
+                    add(dumpParameterizedTypeToken(propType, asType))
+                else add("%T::class.%L", propType, javaTypeAccessor(propType, asType))
+            }
+            .build()
 
-    private fun propertyDefaultValueDefined(propertyMethod: ExecutableElement): Boolean {
-        val propDefMirror = getAnnotationMirror(propertyMethod, DataClassProp::class.java).orNull() ?: return false
-        val defaultValue = getAnnotationValue(propDefMirror, DataClassProp::defaultValueLiteral.name).value as String
-        return defaultValue.isNotEmpty()
-    }
+    /**
+     * Choose the right accessor for java types mapping.
+     * Avoid primitives for arguments of parameterized types.
+     */
+    private fun javaTypeAccessor(type: TypeName, preferObjectType: Boolean = false): String =
+            when (type) {
+                BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, BOOLEAN ->
+                    if (preferObjectType) "javaObjectType" else "java"
+                else -> "java"
+            }
+
+    private fun dumpParameterizedTypeToken(propType: ParameterizedTypeName,
+                                           asType: Boolean = false
+    ) = CodeBlock.builder()
+            .addParameterizedType(propType, asType)
+            .build()
+
+    private fun CodeBlock.Builder.addParameterizedType(propType: ParameterizedTypeName,
+                                                       asType: Boolean = false  // produce a `Type` instead of a `TypeToken`
+    ): CodeBlock.Builder =
+            add("%T.getParameterized(%T::class.java", TypeToken::class, propType.rawType)
+                    .apply {
+                        propType.typeArguments.forEach {
+                            add(", ")
+                            add(dumpTypeToken(it, asType = true))
+                        }
+                    }
+                    .add(")${if (asType) ".type" else ""}")  // when used as a type variable, the `type` property should be returned
 
     companion object {
         private const val GSON_ADAPTER_CLASS_NAME = "GsonTypeAdapter"
-        private const val QN_GSON_TOKEN_NULL = "com.google.gson.stream.JsonToken.NULL"
     }
 }
