@@ -20,24 +20,18 @@ import javax.lang.model.element.TypeElement
  */
 internal class GsonTypeAdapterGenerator(
         processingEnv: ProcessingEnvironment,
-        private val errorReporter: ErrorReporter) {
+        private val errorReporter: ErrorReporter) : FacetGenerator {
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
 
     private lateinit var concreteDataClassSimpleName: String
 
-    /**
-     * Generate TypeAdapter as a nested class of the given data class
-     *
-     * @param interfaceElement the interface element which defines the data class
-     * @param propertyMethods getter methods define the properties of the data class
-     * @param dataClassSpecBuilder [builder instance][TypeSpec.Builder] to build the data class
-     */
-    fun generate(interfaceElement: TypeElement,
-                 propertyMethods: Map<String, ExecutableElement>,
-                 dataClassSpecBuilder: TypeSpec.Builder) {
-        concreteDataClassSimpleName = dataClassSpecBuilder.simpleName
+    override fun generate(dataClassDef: DataClassDef,
+                          propertyMethods: Map<String, ExecutableElement>,
+                          dataClassSpecBuilder: TypeSpec.Builder) {
+        concreteDataClassSimpleName = dataClassDef.className.simpleName()
+        val interfaceElement = dataClassDef.element
         val adapterClsName = GSON_ADAPTER_CLASS_NAME  // nested class name
         val superClsTypeName = ParameterizedTypeName.Companion.get(TypeAdapter::class.asClassName(),
                 interfaceElement.asClassName())

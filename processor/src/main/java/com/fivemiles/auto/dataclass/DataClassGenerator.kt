@@ -25,14 +25,12 @@ private enum class DefaultMethod {
     EQUALS, HASH_CODE, CLONE, CLASS,
     // kotlin methods
     COMPONENT,
+    // android
+    PARCELABLE,
 }
 
-internal val dataClassNames = mutableMapOf<TypeSpec.Builder, String>()
-internal var TypeSpec.Builder.simpleName: String
-    set(value) {
-        dataClassNames[this] = value
-    }
-    get() = dataClassNames[this]!!
+internal data class DataClassDef(val element: TypeElement,
+                                 val className: ClassName)
 
 /**
  * Generates data class given a TypeElement
@@ -45,7 +43,10 @@ internal class DataClassGenerator(
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
-    private val gsonTypeAdapterGenerator = GsonTypeAdapterGenerator(processingEnv, errorReporter)
+    private val facetGenerators: List<FacetGenerator> = listOf(
+            GsonTypeAdapterGenerator(processingEnv, errorReporter),
+            ParcelableGenerator(processingEnv, errorReporter)
+    )
 
     /**
      * Build a data class TypeSpec for the given TypeElement
@@ -58,14 +59,19 @@ internal class DataClassGenerator(
         val properties = propertyNameToMethodMap(getters)
         val dataClassSimpleName = generatedClassName(element.simpleName, DATA_CLASS_NAME_SUFFIX)
         val dataClassName = element.asClassName().peerClass(dataClassSimpleName)
+        val dataClassDef = DataClassDef(element, dataClassName)
+
         val builder = TypeSpec.classBuilder(dataClassName)
-                .apply { this.simpleName = dataClassSimpleName }  // record the generated class name, for retrieval later
                 .addSuperinterface(element.asClassName())
                 .addModifiers(KModifier.DATA, KModifier.INTERNAL)
                 .generateProperties(properties)
 
-        // generates the Gson TypeAdapter
-        gsonTypeAdapterGenerator.generate(element, properties, builder)
+        // add extra facets to the data class
+        facetGenerators.forEach {
+            if (it.applicable(dataClassDef)) {
+                it.generate(dataClassDef, properties, builder)
+            }
+        }
         return builder.build()
     }
 
@@ -136,6 +142,7 @@ internal class DataClassGenerator(
                     name == "clone" -> return DefaultMethod.CLONE
                     name == "getClass" -> return DefaultMethod.CLASS
                     name.matches(REGEX_COMPONENT_FUN) -> return DefaultMethod.COMPONENT
+                    name == "describeContents" -> return DefaultMethod.PARCELABLE
                 }
             }
             1 -> if (name == "equals" &&
@@ -146,7 +153,6 @@ internal class DataClassGenerator(
         return DefaultMethod.NONE
     }
 
-    // TODO skip properties with default implement
     private fun propertyNameToMethodMap(
             propertyMethods: Set<ExecutableElement>): Map<String, ExecutableElement> {
         val allPrefixed = gettersAllPrefixed(propertyMethods)

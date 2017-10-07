@@ -3,6 +3,7 @@ apply plugin: 'kotlin-kapt'
 dependencies {
     compile project(':lib')
     compile "com.google.code.gson:gson:$gson_version"
+    compile 'com.google.android:android:2.1.2'
 
     kapt project(':processor')
     compileOnly project(':processor')
