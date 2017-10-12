@@ -5,9 +5,8 @@ import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
-import com.google.gson.reflect.TypeToken
-import com.squareup.kotlinpoet.asTypeName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 
@@ -25,6 +24,7 @@ import org.junit.Test
     val msi: Map<String, Int>
     val ss: Set<String>
     val lmsi: List<Map<String, Int>>
+    val rm: Map<String, Any>
 
     companion object {
         fun typeAdapter(gson: Gson): TypeAdapter<FledgedGsonData> =
@@ -44,6 +44,7 @@ class GsonFieldTypesTest {
                 .create()
     }
 
+    @Suppress("UNCHECKED_CAST")
     @Test fun readParameterizedProps() {
         val json = """{
         |  "s": "Abc",
@@ -66,7 +67,14 @@ class GsonFieldTypesTest {
         |    "21": 21,
         |    "22": 22,
         |    "23": 23
-        |  }]
+        |  }],
+        |  "rm": {
+        |    "a": 1,
+        |    "o": {
+        |       "l": [ 10, false, "ok" ],
+        |       "y": true
+        |    }
+        |  }
         |}""".trimMargin()
 
         val data = gson.fromJson(json, FledgedGsonData::class.java)
@@ -84,5 +92,16 @@ class GsonFieldTypesTest {
                         "22" to 22,
                         "23" to 23)
         ), data.lmsi)
+
+        // raw map type
+        val rm: Map<String, Any> = data.rm
+        assertEquals(2, rm.size)
+        assertEquals(1.0, rm["a"])  // Gson parse numbers as Double by default
+
+        val rmo = rm["o"] as? Map<String, Any>
+        assertNotNull(rmo); if (rmo == null) return
+        assertEquals(2, rmo.size)
+        assertEquals(true, rmo["y"])
+        assertEquals(listOf(10.0, false, "ok"), rmo["l"])
     }
 }

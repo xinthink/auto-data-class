@@ -21,7 +21,8 @@ private val javaTypeMappings: Map<TypeName, ClassName> = mapOf(
         Float::class.java.asTypeName() to Float::class.asClassName(),
         Boolean::class.java.asTypeName() to Boolean::class.asClassName(),
         Char::class.java.asTypeName() to Char::class.asClassName(),
-        String::class.java.asTypeName() to String::class.asClassName()
+        String::class.java.asTypeName() to String::class.asClassName(),
+        Any::class.java.asTypeName() to ANY
 )
 
 /**
