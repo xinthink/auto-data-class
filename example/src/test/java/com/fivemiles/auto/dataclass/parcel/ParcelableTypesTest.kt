@@ -20,6 +20,8 @@ import org.junit.Test
     val ls: List<String>
 //    val lns: List<String?>  // nullable type param not supported
 //    val ai: Array<Int>  // `Array` is not supported
+    val ss: Set<String>
+    val rm: Map<String, Any>
 }
 
 /**

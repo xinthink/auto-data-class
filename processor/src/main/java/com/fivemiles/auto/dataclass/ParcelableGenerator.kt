@@ -97,10 +97,15 @@ internal class ParcelableGenerator(
             if (serializedType != dataType) add(".to%L()", dataType)
         }
 
-        fun CodeBlock.Builder.addExplicitRead(strType: String, useClassLoader: Boolean = true) {
+        fun CodeBlock.Builder.addExplicitRead(serializedType: String,
+                                              dataType: String = serializedType,
+                                              useClassLoader: Boolean = true) {
             if (useClassLoader)
-                add("%L.read%L(%T::class.java.classLoader) as %T", sourceParam, strType, rawType, type)
-            else add("%L.read%L() as %T", sourceParam, strType, type)
+                add("%L.read%L(%T::class.java.classLoader)", sourceParam, serializedType, rawType)
+            else add("%L.read%L()", sourceParam, serializedType)
+
+            if (serializedType != dataType) add(".to%L()", dataType)
+            add(" as %T", type)
         }
 
         when (rawType) {
@@ -114,6 +119,7 @@ internal class ParcelableGenerator(
             BOOLEAN -> add("%L.readByte() == 1.toByte()", sourceParam)
             STRING, KT_STRING -> addSimpleRead("String")
             LIST, KT_LIST -> addExplicitRead("ArrayList")
+            SET, KT_SET -> addExplicitRead("ArrayList", "Set")
             MAP, KT_MAP -> addExplicitRead("HashMap")
             CHARSEQUENCE, KT_CHARSEQUENCE ->
                 add("%T.CHAR_SEQUENCE_CREATOR.createFromParcel(%L)", TextUtils::class, sourceParam)
@@ -177,10 +183,10 @@ internal class ParcelableGenerator(
     ): CodeBlock.Builder {
         val rawType = parcelableType(type)
 
-        val addSimpleWrite = {serializedType: String ->
+        fun addSimpleWrite(serializedType: String) {
             add("%L.write%L(%L)\n", paramDest, serializedType, prop)
         }
-        val addExplicitWrite = { serializedType: String ->
+        fun addExplicitWrite(serializedType: String) {
             add("%L.write%L(%L.to%L())\n", paramDest, serializedType, prop, serializedType)
         }
 
@@ -189,6 +195,7 @@ internal class ParcelableGenerator(
             CHAR -> addExplicitWrite("Int")
             BOOLEAN -> add("%L.writeByte((if (%L) 1 else 0).toByte())\n", paramDest, prop)
             LIST, KT_LIST -> addSimpleWrite("List")
+            SET, KT_SET -> addExplicitWrite("List")
             MAP, KT_MAP -> addSimpleWrite("Map")
             PARCELABLE -> add("$paramDest.writeParcelable($prop, $paramFlags)\n")
             else -> add("%L.write%T(%L)\n", paramDest, rawType, prop)
@@ -205,6 +212,8 @@ internal class ParcelableGenerator(
         val KT_MAP = Map::class.asClassName()
         val LIST = List::class.java.asClassName()
         val KT_LIST = List::class.asClassName()
+        val SET = Set::class.java.asClassName()
+        val KT_SET = Set::class.asClassName()
 //        val BOOLEANARRAY = ParameterizedTypeName.get(Array<Any>::class, Boolean::class)
 //        val BYTEARRAY = ParameterizedTypeName.get(Array<Any>::class, Byte::class)
 //        val CHARARRAY = ParameterizedTypeName.get(Array<Any>::class, Char::class)
