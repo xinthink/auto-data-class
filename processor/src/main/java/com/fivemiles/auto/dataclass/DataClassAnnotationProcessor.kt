@@ -9,7 +9,7 @@ import com.google.auto.common.BasicAnnotationProcessor
 import com.google.auto.common.MoreElements.getPackage
 import com.google.common.base.Throwables
 import com.google.common.collect.SetMultimap
-import com.squareup.kotlinpoet.KotlinFile
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.TypeSpec
 import java.io.File
 import java.io.IOException
@@ -153,8 +153,8 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
         val pkg = findPackage(type)
         val dir = getSourceLocation()
         try {
-            KotlinFile.builder("$pkg", fileName)
-                    .skipJavaLangImports(true)
+            FileSpec.builder("$pkg", fileName)
+//                    .skipJavaLangImports(true)
                     .addType(classSpec)
                     .build()
                     .writeTo(dir)

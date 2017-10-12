@@ -41,13 +41,14 @@ internal class ParcelableGenerator(
                 .writeParcelFunSpec(propertyMethods)
     }
 
+    /** implements [Parcelable.Creator] */
     private fun generateCreator(dataClassDef: DataClassDef,
                                 creatorType: TypeName,
                                 propertyMethods: Map<String, ExecutableElement>): TypeSpec {
         return TypeSpec.objectBuilder("")
                 .addSuperinterface(creatorType)
-                .addFun(fromParcelFunSpec(dataClassDef, propertyMethods))
-                .addFun(FunSpec.builder("newArray")
+                .addFunction(fromParcelFunSpec(dataClassDef, propertyMethods))
+                .addFunction(FunSpec.builder("newArray")
                         .addModifiers(KModifier.OVERRIDE)
                         .addParameter("size", Int::class)
                         .returns(ParameterizedTypeName.get(Array<Any>::class.asClassName(),
@@ -130,19 +131,21 @@ internal class ParcelableGenerator(
         return this
     }
 
+    /** implements the [Parcelable.describeContents] method */
     private fun TypeSpec.Builder.describeContentsFunSpec(): TypeSpec.Builder =
-            addFun(FunSpec.builder("describeContents")
+            addFunction(FunSpec.builder("describeContents")
                     .addModifiers(KModifier.OVERRIDE)
                     .returns(Int::class)
                     .addCode("return 0")
                     .build())
 
+    /** implements the [Parcelable.writeToParcel] method */
     private fun TypeSpec.Builder.writeParcelFunSpec(
             propertyMethods: Map<String, ExecutableElement>
     ): TypeSpec.Builder {
         val paramDest = "dest"
         val paramFlags = "flags"
-        return addFun(FunSpec.builder("writeToParcel")
+        return addFunction(FunSpec.builder("writeToParcel")
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter(paramDest, Parcel::class)
                 .addParameter(paramFlags, Int::class)
@@ -152,7 +155,7 @@ internal class ParcelableGenerator(
                 )
                 .build())
     }
-    
+
     private fun CodeBlock.Builder.writeParcelFunBody(
             paramDest: String,
             paramFlags: String,

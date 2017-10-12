@@ -1,4 +1,4 @@
 dependencies {
-    compileOnly 'com.google.android:android:2.1.2'
-    compileOnly "com.google.code.gson:gson:$gson_version"
+    compileOnly deps.android.core
+    compileOnly deps.gson
 }

@@ -5,7 +5,8 @@ import com.fivemiles.auto.dataclass.DataClass
 import org.junit.Before
 import org.junit.Test
 
-@DataClass(generateGsonTypeAdapter = false) interface AllParcelableTypes : Parcelable {
+@DataClass(generateGsonTypeAdapter = false)
+interface AllParcelableTypes : Parcelable {
     val i: Int
     val b: Byte
     val l: Long

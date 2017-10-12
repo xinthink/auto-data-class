@@ -47,8 +47,8 @@ internal class GsonTypeAdapterGenerator(
                         .addParameter("gson", Gson::class)
                         .build())
                 .addProperties(propertyMethods.flatMap { (p, m) -> propDefaultAndAdapter(p, m) })
-                .addFun(gsonReaderFunSpec(interfaceElement, propertyMethods))
-                .addFun(gsonWriterFunSpec(interfaceElement, propertyMethods))
+                .addFunction(gsonReaderFunSpec(interfaceElement, propertyMethods))
+                .addFunction(gsonWriterFunSpec(interfaceElement, propertyMethods))
                 .build()
         dataClassSpecBuilder.addType(adapterClsSpec)
     }
@@ -180,6 +180,7 @@ internal class GsonTypeAdapterGenerator(
         }
     }
 
+    /** implements the [TypeAdapter.write] method */
     private fun gsonWriterFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {
         val paramNameWriter = "jsonWriter"
         val paramNameObj = "value"
