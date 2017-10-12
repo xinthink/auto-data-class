@@ -1,5 +1,8 @@
 package com.fivemiles.auto.dataclass
 
+import com.google.gson.TypeAdapter
+import kotlin.reflect.KClass
+
 /**
  * Define a Data property
  */
@@ -12,7 +15,8 @@ annotation class DataClassProp(
         /** Alternative JSON field names */
         val jsonFieldAlternate: Array<String> = emptyArray(),
         /** The literal of the default value, used in generated source */
-        val defaultValueLiteral: String = ""
-//      val gsonTypeAdapter:
+        val defaultValueLiteral: String = "",
+        /** Customized Gson [TypeAdapter] for this property */
+        val gsonTypeAdapter: KClass<out TypeAdapter<*>> = TypeAdapter::class
 //      val parcelTypeAdapter:
 )

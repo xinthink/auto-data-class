@@ -1,12 +1,11 @@
 package com.fivemiles.auto.dataclass.parcel
 
-import android.os.Parcel
 import android.os.Parcelable
 import com.fivemiles.auto.dataclass.DataClass
 import org.junit.Before
 import org.junit.Test
 
-@DataClass interface AllParcelableTypes : Parcelable {
+@DataClass(generateGsonTypeAdapter = false) interface AllParcelableTypes : Parcelable {
     val i: Int
     val b: Byte
     val l: Long

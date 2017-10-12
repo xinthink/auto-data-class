@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.*
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.TypeMirror
 
 /**
  * Generates [Gson TypeAdapter][TypeAdapter] for the data class
@@ -26,6 +27,11 @@ internal class GsonTypeAdapterGenerator(
     private val elementUtils = processingEnv.elementUtils
 
     private lateinit var concreteDataClassSimpleName: String
+
+    override fun applicable(dataClassDef: DataClassDef): Boolean {
+        val adc = dataClassDef.element.getAnnotation(DataClass::class.java)
+        return adc.generateGsonTypeAdapter
+    }
 
     override fun generate(dataClassDef: DataClassDef,
                           propertyMethods: Map<String, ExecutableElement>,
@@ -72,11 +78,23 @@ internal class GsonTypeAdapterGenerator(
         val typeAdapterProp = PropertySpec.builder("${p}Adapter", adapterType)
                 .addModifiers(KModifier.PRIVATE)
                 .apply {
+                    // Get custom TypeAdapter if any
+                    val customAdapterType = if (propDefMirror != null) {
+                        val annotatedAdapterType = (getAnnotationValue(propDefMirror,
+                                DataClassProp::gsonTypeAdapter.name).value as TypeMirror).asTypeName()
+                        if (TypeAdapter::class.asTypeName() != annotatedAdapterType)
+                            annotatedAdapterType else null
+                    } else null
+
                     // TypeAdapter delegate
-                    val adapteeTypeBlock = dumpTypeToken(nonNullPropType)
-                    if (nonNullPropType is ParameterizedTypeName)
-                        delegate("lazy { gson.getAdapter(%L) as %T }", adapteeTypeBlock, adapterType)
-                    else delegate("lazy { gson.getAdapter(%L) }", adapteeTypeBlock)
+                    if (customAdapterType != null) {
+                        delegate("lazy { %T() }", customAdapterType)
+                    } else {
+                        val adapteeTypeBlock = dumpTypeToken(nonNullPropType)
+                        if (nonNullPropType is ParameterizedTypeName)
+                            delegate("lazy { gson.getAdapter(%L) as %T }", adapteeTypeBlock, adapterType)
+                        else delegate("lazy { gson.getAdapter(%L) }", adapteeTypeBlock)
+                    }
                 }
                 .build()
 
@@ -138,11 +156,18 @@ internal class GsonTypeAdapterGenerator(
     private fun FunSpec.Builder.generatePropertyReader(paramJsonReader: String,
                                                        propName: String,
                                                        propMethod: ExecutableElement) {
+        val propDefMirror = getAnnotationMirror(propMethod, DataClassProp::class.java).orNull()
+
         // preferred json field name
-        addStatement("%S -> $propName = ${propName}Adapter.read($paramJsonReader)", propName)
+        val jsonFieldName: String = if (propDefMirror != null) {
+            val _fieldName = getAnnotationValue(propDefMirror,
+                    DataClassProp::jsonField.name).value as String
+            if (_fieldName.isNotBlank()) _fieldName else propName
+        } else propName
+
+        addStatement("%S -> %L = %LAdapter.read(%L)", jsonFieldName, propName, propName, paramJsonReader)
 
         // alternatives if any
-        val propDefMirror = getAnnotationMirror(propMethod, DataClassProp::class.java).orNull()
         if (propDefMirror != null) {
             @Suppress("UNCHECKED_CAST")
             val alternativeNames = getAnnotationValue(propDefMirror,
@@ -157,7 +182,8 @@ internal class GsonTypeAdapterGenerator(
 
     private fun gsonWriterFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {
         val paramNameWriter = "jsonWriter"
-        val paramNameObj = "${type.simpleName}".decapitalize()
+        val paramNameObj = "value"
+
         return FunSpec.builder("write")
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter(paramNameWriter, JsonWriter::class)
@@ -168,8 +194,16 @@ internal class GsonTypeAdapterGenerator(
                 .endControlFlow()
                 .addStatement("$paramNameWriter.beginObject()")
                 .apply {
-                    propertyMethods.forEach { (p, _) ->
-                        addStatement("$paramNameWriter.name(%S)", p)
+                    propertyMethods.forEach { (p, m) ->
+                        // preferred json field name
+                        val propDefMirror = getAnnotationMirror(m, DataClassProp::class.java).orNull()
+                        val jsonFieldName: String = if (propDefMirror != null) {
+                            val _fieldName = getAnnotationValue(propDefMirror,
+                                    DataClassProp::jsonField.name).value as String
+                            if (_fieldName.isNotBlank()) _fieldName else p
+                        } else p
+
+                        addStatement("$paramNameWriter.name(%S)", jsonFieldName)
                         addStatement("${p}Adapter.write($paramNameWriter, $paramNameObj.$p)")
                     }
                 }

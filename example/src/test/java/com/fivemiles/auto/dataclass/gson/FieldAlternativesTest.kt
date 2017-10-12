@@ -16,6 +16,7 @@ import org.junit.Test
 @DataClass interface AdaptiveImage {
     val src: String
         @DataClassProp(
+                jsonField = "source",
                 jsonFieldAlternate = arrayOf("link", "url")
         ) get
 
@@ -46,8 +47,14 @@ class FieldAlternativesTest {
         data = gson.fromJson(json, AdaptiveImage::class.java)
         assertEquals("a.png", data.src)
 
-        json = """{"src": "a.png"}"""
+        json = """{"source": "a.png"}"""
         data = gson.fromJson(json, AdaptiveImage::class.java)
         assertEquals("a.png", data.src)
+    }
+
+    @Test fun jsonWritingWithCustomFieldName() {
+        val img = DC_AdaptiveImage(src = "a.png")
+        val json = gson.toJson(img)
+        assertEquals("""{"source":"a.png"}""", json)
     }
 }

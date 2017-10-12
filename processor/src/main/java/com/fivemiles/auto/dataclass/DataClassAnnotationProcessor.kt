@@ -155,8 +155,6 @@ private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnn
         try {
             KotlinFile.builder("$pkg", fileName)
                     .skipJavaLangImports(true)
-//          .addStaticImport(JsonToken::class, "*")
-                    .addFileComment("hello\n")
                     .addType(classSpec)
                     .build()
                     .writeTo(dir)
