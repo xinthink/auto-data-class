@@ -1,12 +1,9 @@
 package com.fivemiles.auto.dataclass
 
-import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 import android.text.TextUtils
-import com.google.auto.common.MoreElements
 import com.squareup.kotlinpoet.*
-import org.jetbrains.annotations.Nullable
 import java.io.Serializable
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ExecutableElement
@@ -40,6 +37,8 @@ internal class ParcelableGenerator(
                 PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
                         .initializer("%L", generateCreator(dataClassDef, creatorClsType, propertyMethods))
                         .build()).build())
+                .describeContentsFunSpec()
+                .writeParcelFunSpec(propertyMethods)
     }
 
     private fun generateCreator(dataClassDef: DataClassDef,
@@ -68,7 +67,7 @@ internal class ParcelableGenerator(
                 .returns(dataClassDef.className)
                 .addCode("return %T(\n%L\n)", dataClassDef.className, CodeBlock.builder().apply {
                     propertyMethods.entries.forEachIndexed { i, (_, m) ->
-                        val propType = propertyType(m)
+                        val propType = parsePropertyType(m)
                         val nonNullableType = propType.asNonNullable()
                         if (propType.nullable) {
                             add("if ($paramSource.readByte() == 0.toByte()) ")
@@ -86,16 +85,11 @@ internal class ParcelableGenerator(
                 .build()
     }
 
-    private fun propertyType(propertyMethod: ExecutableElement): TypeName {
-        val type = propertyMethod.returnType.asTypeName()
-        return if (MoreElements.isAnnotationPresent(propertyMethod, Nullable::class.java)) type.asNullable() else type
-    }
-
     private fun parcelableType(originType: TypeName): TypeName =
             (originType as? ParameterizedTypeName)?.rawType ?: originType
 
     private fun CodeBlock.Builder.readValue(sourceParam: String, type: TypeName): CodeBlock.Builder {
-        val parcelableType = parcelableType(type)
+        val rawType = parcelableType(type)
 
         fun CodeBlock.Builder.addSimpleRead(serializedType: String,
                                             dataType: String = serializedType) {
@@ -105,11 +99,11 @@ internal class ParcelableGenerator(
 
         fun CodeBlock.Builder.addExplicitRead(strType: String, useClassLoader: Boolean = true) {
             if (useClassLoader)
-                add("%L.read%L(%T::class.java.classLoader) as %T", sourceParam, strType, type, type)
+                add("%L.read%L(%T::class.java.classLoader) as %T", sourceParam, strType, rawType, type)
             else add("%L.read%L() as %T", sourceParam, strType, type)
         }
 
-        when (parcelableType) {
+        when (rawType) {
             BYTE -> addSimpleRead("Byte")
             INT -> addSimpleRead("Int")
             SHORT -> addSimpleRead("Int", "Short")
@@ -123,9 +117,81 @@ internal class ParcelableGenerator(
             MAP, KT_MAP -> addExplicitRead("HashMap")
             CHARSEQUENCE, KT_CHARSEQUENCE ->
                 add("%T.CHAR_SEQUENCE_CREATOR.createFromParcel(%L)", TextUtils::class, sourceParam)
-            BUNDLE -> addExplicitRead("Bundle")
+//            BUNDLE -> addExplicitRead("Bundle")
             PARCELABLE -> addExplicitRead("Parcelable")
             else -> addExplicitRead("Value")
+        }
+        return this
+    }
+
+    private fun TypeSpec.Builder.describeContentsFunSpec(): TypeSpec.Builder =
+            addFun(FunSpec.builder("describeContents")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .returns(Int::class)
+                    .addCode("return 0")
+                    .build())
+
+    private fun TypeSpec.Builder.writeParcelFunSpec(
+            propertyMethods: Map<String, ExecutableElement>
+    ): TypeSpec.Builder {
+        val paramDest = "dest"
+        val paramFlags = "flags"
+        return addFun(FunSpec.builder("writeToParcel")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter(paramDest, Parcel::class)
+                .addParameter(paramFlags, Int::class)
+                .addCode(CodeBlock.builder()
+                        .writeParcelFunBody(paramDest, paramFlags, propertyMethods)
+                        .build()
+                )
+                .build())
+    }
+    
+    private fun CodeBlock.Builder.writeParcelFunBody(
+            paramDest: String,
+            paramFlags: String,
+            propertyMethods: Map<String, ExecutableElement>
+    ): CodeBlock.Builder {
+        propertyMethods.entries.forEach { (p, m) ->
+            val propType = parsePropertyType(m)
+            val nonNullableType = propType.asNonNullable()
+
+            if (propType.nullable) {
+                beginControlFlow("if ($p == null)")
+                addStatement("$paramDest.writeByte(1.toByte())")
+                nextControlFlow("else")
+                addStatement("$paramDest.writeByte(0.toByte())")
+                writeValue(paramDest, paramFlags, p, nonNullableType)
+                endControlFlow()
+            } else {
+                writeValue(paramDest, paramFlags, p, nonNullableType)
+            }
+        }
+        return this
+    }
+
+    private fun CodeBlock.Builder.writeValue(paramDest: String,
+                                             paramFlags: String,
+                                             prop: String,
+                                             type: TypeName
+    ): CodeBlock.Builder {
+        val rawType = parcelableType(type)
+
+        val addSimpleWrite = {serializedType: String ->
+            add("%L.write%L(%L)\n", paramDest, serializedType, prop)
+        }
+        val addExplicitWrite = { serializedType: String ->
+            add("%L.write%L(%L.to%L())\n", paramDest, serializedType, prop, serializedType)
+        }
+
+        when (rawType) {
+            SHORT,
+            CHAR -> addExplicitWrite("Int")
+            BOOLEAN -> add("%L.writeByte((if (%L) 1 else 0).toByte())\n", paramDest, prop)
+            LIST, KT_LIST -> addSimpleWrite("List")
+            MAP, KT_MAP -> addSimpleWrite("Map")
+            PARCELABLE -> add("$paramDest.writeParcelable($prop, $paramFlags)\n")
+            else -> add("%L.write%T(%L)\n", paramDest, rawType, prop)
         }
         return this
     }
@@ -139,19 +205,19 @@ internal class ParcelableGenerator(
         val KT_MAP = Map::class.asClassName()
         val LIST = List::class.java.asClassName()
         val KT_LIST = List::class.asClassName()
-        val BOOLEANARRAY = ParameterizedTypeName.get(Array<Any>::class, Boolean::class)
-        val BYTEARRAY = ParameterizedTypeName.get(Array<Any>::class, Byte::class)
-        val CHARARRAY = ParameterizedTypeName.get(Array<Any>::class, Char::class)
-        val INTARRAY = ParameterizedTypeName.get(Array<Any>::class, Int::class)
-        val LONGARRAY = ParameterizedTypeName.get(Array<Any>::class, Long::class)
-        val STRINGARRAY = ParameterizedTypeName.get(Array<Any>::class.asClassName(), STRING)
-        val KT_STRINGARRAY = ParameterizedTypeName.get(Array<Any>::class, String::class)
+//        val BOOLEANARRAY = ParameterizedTypeName.get(Array<Any>::class, Boolean::class)
+//        val BYTEARRAY = ParameterizedTypeName.get(Array<Any>::class, Byte::class)
+//        val CHARARRAY = ParameterizedTypeName.get(Array<Any>::class, Char::class)
+//        val INTARRAY = ParameterizedTypeName.get(Array<Any>::class, Int::class)
+//        val LONGARRAY = ParameterizedTypeName.get(Array<Any>::class, Long::class)
+//        val STRINGARRAY = ParameterizedTypeName.get(Array<Any>::class.asClassName(), STRING)
+//        val KT_STRINGARRAY = ParameterizedTypeName.get(Array<Any>::class, String::class)
 //        val SPARSEARRAY = ClassName.get("android.util", "SparseArray")
 //        val SPARSEBOOLEANARRAY = ClassName.get("android.util", "SparseBooleanArray")
-        val BUNDLE = Bundle::class.asClassName()
+//        val BUNDLE = Bundle::class.asClassName()
 //        val PERSISTABLEBUNDLE = ClassName.get("android.os", "PersistableBundle")
         val PARCELABLE = Parcelable::class.asClassName()
-        val PARCELABLEARRAY = ParameterizedTypeName.get(Array<Any>::class, Parcelable::class)
+//        val PARCELABLEARRAY = ParameterizedTypeName.get(Array<Any>::class, Parcelable::class)
         val CHARSEQUENCE = CharSequence::class.java.asClassName()
         val KT_CHARSEQUENCE = CharSequence::class.asClassName()
 //        val IBINDER = ClassName.get("android.os", "IBinder")

@@ -37,14 +37,11 @@ fun parsePropertyType(propertyMethod: ExecutableElement): TypeName {
  * Map `type` parsed from bytecode to Kotlin types, if necessary
  */
 private fun mapToKotlinType(type: TypeName): TypeName {
-    if (type is ParameterizedTypeName) {
-        val ktTypeName = javaTypeMappings[type.rawType]
-        if (ktTypeName != null) {
-            return ParameterizedTypeName.get(ktTypeName, *type.typeArguments
-                    .map(::mapToKotlinType)
-                    .toTypedArray())
-        }
-    }
+    if (type !is ParameterizedTypeName) return javaTypeMappings[type] ?: type
 
-    return javaTypeMappings[type] ?: type
+    val ktTypeName = javaTypeMappings[type.rawType]
+    val rawTypeName = ktTypeName ?: type.rawType
+    return ParameterizedTypeName.get(rawTypeName, *type.typeArguments
+            .map(::mapToKotlinType)
+            .toTypedArray())
 }

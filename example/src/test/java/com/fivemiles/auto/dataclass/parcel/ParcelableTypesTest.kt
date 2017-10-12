@@ -17,23 +17,17 @@ import org.junit.Test
     val d: Double
     val s: String
     val ns: String?
-//    val ls: List<String>
-//    val nls: List<String?>  // nullable type param unsupported
-//    val ai: Array<Int>
-//    val nai: Array<Int?>
-
-    override fun describeContents() = 0
-    override fun writeToParcel(dest: Parcel?, flags: Int) = Unit
+    val ls: List<String>
+//    val lns: List<String?>  // nullable type param not supported
+//    val ai: Array<Int>  // `Array` is not supported
 }
 
 /**
- * The most simple case of parcelable class
+ * Demonstrating supported property types.
  */
 class ParcelableTypesTest {
 
-    @Before fun setup() {
-    }
+    @Before fun setup() = Unit
 
-    @Test fun writeToParcel() {
-    }
+    @Test fun writeToParcel() = Unit
 }
