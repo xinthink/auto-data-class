@@ -3,10 +3,16 @@ package com.fivemiles.auto.dataclass
 import android.os.Parcel
 import android.os.Parcelable
 import android.text.TextUtils
+import com.fivemiles.auto.dataclass.parcel.ParcelAdapter
+import com.google.auto.common.AnnotationMirrors.getAnnotationValue
+import com.google.auto.common.MoreElements.getAnnotationMirror
 import com.squareup.kotlinpoet.*
 import java.io.Serializable
+import java.util.*
 import javax.annotation.processing.ProcessingEnvironment
+import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.type.TypeMirror
 
 /**
  * Generates [Parcelable] stuff for the data class
@@ -29,16 +35,24 @@ internal class ParcelableGenerator(
     override fun generate(dataClassDef: DataClassDef,
                           propertyMethods: Map<String, ExecutableElement>,
                           dataClassSpecBuilder: TypeSpec.Builder) {
-        val concreteClassName = dataClassDef.className
-        val creatorClsType = ParameterizedTypeName.get(Parcelable.Creator::class.asClassName(),
-                concreteClassName)
-
-        dataClassSpecBuilder.companionObject(TypeSpec.companionObjectBuilder().addProperty(
-                PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
-                        .initializer("%L", generateCreator(dataClassDef, creatorClsType, propertyMethods))
-                        .build()).build())
+        dataClassSpecBuilder
+                .companionObject(TypeSpec.companionObjectBuilder()
+                        .addParcelableCreator(dataClassDef, propertyMethods)
+                        .addCustomAdapters(propertyMethods)
+                        .build())
                 .describeContentsFunSpec()
                 .writeParcelFunSpec(propertyMethods)
+    }
+
+    private fun TypeSpec.Builder.addParcelableCreator(
+            dataClassDef: DataClassDef,
+            propertyMethods: Map<String, ExecutableElement>
+    ): TypeSpec.Builder {
+        val concreteClassName = dataClassDef.className
+        val creatorClsType = ParameterizedTypeName.get(Parcelable.Creator::class.asClassName(), concreteClassName)
+        return addProperty(PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
+                .initializer("%L", generateCreator(dataClassDef, creatorClsType, propertyMethods))
+                .build())
     }
 
     /** implements [Parcelable.Creator] */
@@ -131,6 +145,31 @@ internal class ParcelableGenerator(
         return this
     }
 
+    /** Custom [ParcelAdapter]s, if any, defined as companion object properties */
+    private fun TypeSpec.Builder.addCustomAdapters(
+            propertyMethods: Map<String, ExecutableElement>
+    ): TypeSpec.Builder {
+        propertyMethods.forEach { p, m ->
+            val propDef = getAnnotationMirror(m, DataProp::class.java).orNull()
+            val customAdapterType = if (propDef != null) {
+                val annotatedAdapterType = (getAnnotationValue(propDef,
+                        DataProp::parcelAdapter.name).value as TypeMirror).asTypeName()
+                if (ParcelAdapter::class.asTypeName() != annotatedAdapterType)
+                    annotatedAdapterType else null
+            } else null
+
+            if (customAdapterType != null) {
+                addProperty(PropertySpec.builder(customAdapterPropName(p), customAdapterType)
+                        .addModifiers(KModifier.PRIVATE)
+                        .delegate("lazy { %T() }", customAdapterType)
+                        .build())
+            }
+        }
+        return this
+    }
+
+    private fun customAdapterPropName(p: String) = "${p}_ADAPTER".toUpperCase(Locale.US)
+
     /** implements the [Parcelable.describeContents] method */
     private fun TypeSpec.Builder.describeContentsFunSpec(): TypeSpec.Builder =
             addFunction(FunSpec.builder("describeContents")
@@ -164,16 +203,17 @@ internal class ParcelableGenerator(
         propertyMethods.entries.forEach { (p, m) ->
             val propType = parsePropertyType(m)
             val nonNullableType = propType.asNonNullable()
+            val propDef = getAnnotationMirror(m, DataProp::class.java).orNull()
 
             if (propType.nullable) {
                 beginControlFlow("if ($p == null)")
                 addStatement("$paramDest.writeByte(1.toByte())")
                 nextControlFlow("else")
                 addStatement("$paramDest.writeByte(0.toByte())")
-                writeValue(paramDest, paramFlags, p, nonNullableType)
+                writeValue(paramDest, paramFlags, p, propDef, nonNullableType)
                 endControlFlow()
             } else {
-                writeValue(paramDest, paramFlags, p, nonNullableType)
+                writeValue(paramDest, paramFlags, p, propDef, nonNullableType)
             }
         }
         return this
@@ -182,12 +222,26 @@ internal class ParcelableGenerator(
     private fun CodeBlock.Builder.writeValue(paramDest: String,
                                              paramFlags: String,
                                              prop: String,
+                                             propDef: AnnotationMirror?,
                                              type: TypeName
     ): CodeBlock.Builder {
-        val rawType = parcelableType(type)
+        // prefer custom TypeAdapter if any
+        val customAdapterType = if (propDef != null) {
+            val annotatedAdapterType = (getAnnotationValue(propDef,
+                    DataProp::parcelAdapter.name).value as TypeMirror).asTypeName()
+            if (ParcelAdapter::class.asTypeName() != annotatedAdapterType)
+                annotatedAdapterType else null
+        } else null
 
+        if (customAdapterType != null) {
+            add("%L.toParcel(%L, %L)\n", customAdapterPropName(prop), prop, paramDest)
+            return this
+        }
+
+        val rawType = parcelableType(type)
         fun addSimpleWrite(serializedType: String) {
             add("%L.write%L(%L)\n", paramDest, serializedType, prop)
+
         }
         fun addExplicitWrite(serializedType: String) {
             add("%L.write%L(%L.to%L())\n", paramDest, serializedType, prop, serializedType)

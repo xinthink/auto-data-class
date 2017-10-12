@@ -13,10 +13,10 @@ import org.junit.Test
 @DataClass interface SimpleData {
     val firstName: String?
     val lastName: String?
-        @DataClassProp(defaultValueLiteral = "null") get
+        @DataProp(defaultValueLiteral = "null") get
 
     val greeting: String
-        @DataClassProp(defaultValueLiteral = "\"Hello\"") get
+        @DataProp(defaultValueLiteral = "\"Hello\"") get
 
     // derived property
     val fullName: String

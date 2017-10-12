@@ -94,10 +94,10 @@ internal class DataClassGenerator(
 
             // default value
             val ctorParamBuilder = ParameterSpec.builder(propName, propType)
-            val propDefMirror = getAnnotationMirror(it.value, DataClassProp::class.java).orNull()
+            val propDefMirror = getAnnotationMirror(it.value, DataProp::class.java).orNull()
             if (propDefMirror != null) {
                 val defaultValue = getAnnotationValue(propDefMirror,
-                        DataClassProp::defaultValueLiteral.name).value as String
+                        DataProp::defaultValueLiteral.name).value as String
                 if (defaultValue.isNotBlank()) {
                     ctorParamBuilder.defaultValue("%L", defaultValue)
                 }

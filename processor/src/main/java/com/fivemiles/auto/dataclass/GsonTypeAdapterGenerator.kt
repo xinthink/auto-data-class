@@ -55,7 +55,7 @@ internal class GsonTypeAdapterGenerator(
 
     /** define default value / typeAdapter for each property */
     private fun propDefaultAndAdapter(p: String, m: ExecutableElement): List<PropertySpec> {
-        val propDefMirror = getAnnotationMirror(m, DataClassProp::class.java).orNull()
+        val propDefMirror = getAnnotationMirror(m, DataProp::class.java).orNull()
         val propType = parsePropertyType(m)
 
         // default value
@@ -64,7 +64,7 @@ internal class GsonTypeAdapterGenerator(
                 .apply {
                     if (propDefMirror != null) {
                         val defaultValue = getAnnotationValue(propDefMirror,
-                                DataClassProp::defaultValueLiteral.name).value as String
+                                DataProp::defaultValueLiteral.name).value as String
                         initializer(if (defaultValue.isNotBlank()) defaultValue else "null")
                     } else {
                         initializer("null")
@@ -81,7 +81,7 @@ internal class GsonTypeAdapterGenerator(
                     // Get custom TypeAdapter if any
                     val customAdapterType = if (propDefMirror != null) {
                         val annotatedAdapterType = (getAnnotationValue(propDefMirror,
-                                DataClassProp::gsonTypeAdapter.name).value as TypeMirror).asTypeName()
+                                DataProp::gsonTypeAdapter.name).value as TypeMirror).asTypeName()
                         if (TypeAdapter::class.asTypeName() != annotatedAdapterType)
                             annotatedAdapterType else null
                     } else null
@@ -156,12 +156,12 @@ internal class GsonTypeAdapterGenerator(
     private fun FunSpec.Builder.generatePropertyReader(paramJsonReader: String,
                                                        propName: String,
                                                        propMethod: ExecutableElement) {
-        val propDefMirror = getAnnotationMirror(propMethod, DataClassProp::class.java).orNull()
+        val propDefMirror = getAnnotationMirror(propMethod, DataProp::class.java).orNull()
 
         // preferred json field name
         val jsonFieldName: String = if (propDefMirror != null) {
             val _fieldName = getAnnotationValue(propDefMirror,
-                    DataClassProp::jsonField.name).value as String
+                    DataProp::jsonField.name).value as String
             if (_fieldName.isNotBlank()) _fieldName else propName
         } else propName
 
@@ -171,7 +171,7 @@ internal class GsonTypeAdapterGenerator(
         if (propDefMirror != null) {
             @Suppress("UNCHECKED_CAST")
             val alternativeNames = getAnnotationValue(propDefMirror,
-                    DataClassProp::jsonFieldAlternate.name).value as List<Any>
+                    DataProp::jsonFieldAlternate.name).value as List<Any>
             if (alternativeNames.size > 1) {
                 addStatement("in arrayOf(%L) -> $propName = ${propName}Adapter.read($paramJsonReader)", alternativeNames)
             } else if (alternativeNames.isNotEmpty()) {
@@ -197,10 +197,10 @@ internal class GsonTypeAdapterGenerator(
                 .apply {
                     propertyMethods.forEach { (p, m) ->
                         // preferred json field name
-                        val propDefMirror = getAnnotationMirror(m, DataClassProp::class.java).orNull()
+                        val propDefMirror = getAnnotationMirror(m, DataProp::class.java).orNull()
                         val jsonFieldName: String = if (propDefMirror != null) {
                             val _fieldName = getAnnotationValue(propDefMirror,
-                                    DataClassProp::jsonField.name).value as String
+                                    DataProp::jsonField.name).value as String
                             if (_fieldName.isNotBlank()) _fieldName else p
                         } else p
 

@@ -1,7 +1,7 @@
 package com.fivemiles.auto.dataclass.gson
 
 import com.fivemiles.auto.dataclass.DataClass
-import com.fivemiles.auto.dataclass.DataClassProp
+import com.fivemiles.auto.dataclass.DataProp
 import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -16,7 +16,7 @@ import org.junit.Test
  */
 @DataClass interface CustomAdapterData {
     val numeralBool: Boolean
-        @DataClassProp(
+        @DataProp(
                 gsonTypeAdapter = NumeralBooleanAdapter::class
         ) get
     val jsonBool: Boolean

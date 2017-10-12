@@ -6,14 +6,14 @@
 package com.fivemiles.example.dataclass
 
 import com.fivemiles.auto.dataclass.DataClass
-import com.fivemiles.auto.dataclass.DataClassProp
+import com.fivemiles.auto.dataclass.DataProp
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import java.util.*
 
 @DataClass interface Address {
     val street: String?
-        @DataClassProp(
+        @DataProp(
                 jsonField = "street",
                 defaultValueLiteral = """"string literal""""
         )
@@ -41,7 +41,7 @@ import java.util.*
 
 @DataClass interface Person {
     val name: String
-    val gender: Int @DataClassProp("gender", defaultValueLiteral = "0") get
+    val gender: Int @DataProp("gender", defaultValueLiteral = "0") get
     val dateOfBirth: Date
     val address: Address?
 }

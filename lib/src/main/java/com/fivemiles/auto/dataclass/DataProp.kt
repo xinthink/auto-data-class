@@ -1,5 +1,6 @@
 package com.fivemiles.auto.dataclass
 
+import com.fivemiles.auto.dataclass.parcel.ParcelAdapter
 import com.google.gson.TypeAdapter
 import kotlin.reflect.KClass
 
@@ -9,7 +10,7 @@ import kotlin.reflect.KClass
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.PROPERTY_GETTER)
 @MustBeDocumented
-annotation class DataClassProp(
+annotation class DataProp(
         /** Name of the JSON field for the property */
         val jsonField: String = "",
         /** Alternative JSON field names */
@@ -17,6 +18,7 @@ annotation class DataClassProp(
         /** The literal of the default value, used in generated source */
         val defaultValueLiteral: String = "",
         /** Customized Gson [TypeAdapter] for this property */
-        val gsonTypeAdapter: KClass<out TypeAdapter<*>> = TypeAdapter::class
-//      val parcelTypeAdapter:
+        val gsonTypeAdapter: KClass<out TypeAdapter<*>> = TypeAdapter::class,
+        /** Customized [ParcelAdapter] for this property */
+        val parcelAdapter: KClass<out ParcelAdapter<*>> = ParcelAdapter::class
 )

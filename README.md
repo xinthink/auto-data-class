@@ -53,12 +53,12 @@ Just like how you'll use [AutoValue], it's convenient to write factory methods o
 }
 ```
 
-Furthermore, you can customize the generated code with the `@DataClassProp` annotation.
+Furthermore, you can customize the generated code with the `@DataProp` annotation.
 
 ```kotlin
 @DataClass interface Address {
     val street: String?
-        @DataClassProp(
+        @DataProp(
                 jsonField = "street", 
                 jsonFieldAlternate = arrayOf("street1", "street2"), 
                 defaultValueLiteral = """"string literal""""
