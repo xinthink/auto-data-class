@@ -52,7 +52,7 @@ class DataClassStepTest {
             |}
             |""".trimMargin())
 
-        val expected = KotlinFile.builder("test", "DC_Test")
+        val expected = FileSpec.builder("test", "DC_Test")
                 .addType(TypeSpec.classBuilder("DC_Test")
                         .addModifiers(KModifier.INTERNAL, KModifier.DATA)
                         .addProperty(PropertySpec.builder("street", nullableStringType)
