@@ -44,9 +44,11 @@ group 'com.fivemiles.auto'
 version '0.1.0'
 
 // load local.properties
-Properties props = new Properties()
-props.load new FileInputStream('local.properties')
-props.each { project.ext.set(it.key, it.value) }
+if (file('local.properties').exists()) {
+    Properties props = new Properties()
+    props.load new FileInputStream('local.properties')
+    props.each { project.ext.set(it.key, it.value) }
+}
 
 subprojects {
     apply plugin: 'java'
@@ -80,18 +82,21 @@ configure(subprojects.findAll { it.name != 'example' }) {
         from sourceSets.main.allJava
     }
 
-    bintray {
-        user = BINTRAY_USER
-        key = BINTRAY_KEY
-        publications = ['mavenJava']
-        pkg {
-            repo = 'maven'
-            name = "auto-data-class"
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/xinthink/auto-data-class.git'
-            version {
-                name = rootProject.version
-                vcsTag = "v${rootProject.version}"
+    
+    if (projects.hasProperty('BINTRAY_USER')) {
+        bintray {
+            user = BINTRAY_USER
+            key = BINTRAY_KEY
+            publications = ['mavenJava']
+            pkg {
+                repo = 'maven'
+                name = "auto-data-class"
+                licenses = ['Apache-2.0']
+                vcsUrl = 'https://github.com/xinthink/auto-data-class.git'
+                version {
+                    name = rootProject.version
+                    vcsTag = "v${rootProject.version}"
+                }
             }
         }
     }
