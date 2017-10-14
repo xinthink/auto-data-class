@@ -1,6 +1,3 @@
-group 'com.fivemiles.auto'
-version '0.1.0'
-
 buildscript {
     ext.kotlin_version = '1.1.51'
     ext.gson_version = '2.8.0'
@@ -30,12 +27,26 @@ buildscript {
     ]
 
     repositories {
+        jcenter()
+        maven { url "https://jitpack.io" }
         mavenCentral()
     }
     dependencies {
         classpath deps.kotlin.plugin
     }
 }
+
+plugins {
+    id 'com.jfrog.bintray' version '1.7.3'
+}
+
+group 'com.fivemiles.auto'
+version '0.1.0'
+
+// load local.properties
+Properties props = new Properties()
+props.load new FileInputStream('local.properties')
+props.each { project.ext.set(it.key, it.value) }
 
 subprojects {
     apply plugin: 'java'
@@ -44,6 +55,8 @@ subprojects {
     sourceCompatibility = JavaVersion.VERSION_1_7
 
     repositories {
+        jcenter()
+        maven { url "https://jitpack.io" }
         mavenCentral()
     }
 
@@ -51,5 +64,49 @@ subprojects {
         compile deps.kotlin.stdlib
         testCompile deps.junit
         testCompile deps.mockito.inline
+    }
+}
+
+configure(subprojects.findAll { it.name != 'example' }) {
+    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.bintray'
+
+    ext {
+        artifactId = "auto-data-class-${project.name}"
+    }
+
+    task sourceJar(type: Jar) {
+        from sourceSets.main.allJava
+    }
+
+    bintray {
+        user = BINTRAY_USER
+        key = BINTRAY_KEY
+        publications = ['mavenJava']
+        pkg {
+            repo = 'maven'
+            name = "auto-data-class"
+            licenses = ['Apache-2.0']
+            vcsUrl = 'https://github.com/xinthink/auto-data-class.git'
+            version {
+                name = rootProject.version
+                vcsTag = "v${rootProject.version}"
+            }
+        }
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                artifact sourceJar {
+                    classifier 'sources'
+                }
+                groupId rootProject.group
+                artifactId project.artifactId
+                version rootProject.version
+            }
+        }
     }
 }
