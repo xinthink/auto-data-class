@@ -80,15 +80,18 @@ configure(subprojects.findAll { it.name != 'example' }) {
         from sourceSets.main.allJava
     }
 
-    
-    if (projects.hasProperty('BINTRAY_USER')) {
+    if (project.hasProperty('BINTRAY_USER')) {
         bintray {
             user = BINTRAY_USER
             key = BINTRAY_KEY
             publications = ['mavenJava']
+
+            dryRun = false
+            publish = true
+
             pkg {
                 repo = 'maven'
-                name = "auto-data-class"
+                name = project.artifactId
                 licenses = ['Apache-2.0']
                 vcsUrl = 'https://github.com/xinthink/auto-data-class.git'
                 version {
