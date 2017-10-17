@@ -68,6 +68,7 @@ internal class DataClassGenerator(
 
             constructorBuilder.addParameter(ctorParamBuilder.build())
             addProperty(PropertySpec.builder(it.name, it.typeKt)
+                    .mutable(it.isMutable)
                     .addModifiers(KModifier.OVERRIDE)
                     .initializer(it.name)
                     .build())

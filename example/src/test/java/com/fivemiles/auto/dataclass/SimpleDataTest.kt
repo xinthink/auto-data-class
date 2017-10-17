@@ -10,13 +10,17 @@ import org.junit.Test
  *
  * Created by ywu on 2017/7/16.
  */
-@DataClass interface SimpleData {
+@DataClass(generateGsonTypeAdapter = false)
+interface SimpleData {
     val firstName: String?
     val lastName: String?
         @DataProp(defaultValueLiteral = "null") get
 
     val greeting: String
         @DataProp(defaultValueLiteral = "\"Hello\"") get
+
+    var mutableProp: Long
+        @DataProp(defaultValueLiteral = "0L") get
 
     // derived property
     val fullName: String
@@ -32,7 +36,7 @@ import org.junit.Test
 class SimpleDataTest {
 
     @Test fun instantiate() {
-        val data = DC_SimpleData("Jon", "Snow", "Hi")
+        val data = DC_SimpleData("Jon", "Snow", "Hi", 0L)
         assertEquals("Jon", data.firstName)
         assertEquals("Snow", data.lastName)
         assertEquals("Jon Snow", data.fullName)
@@ -47,5 +51,14 @@ class SimpleDataTest {
         assertEquals("World", data.fullName)
         assertEquals("Hello", data.greeting)
         assertEquals("Hello, World", data.sayHello())
+        assertEquals(0L, data.mutableProp)
+    }
+
+    @Test fun allowMutableProperties() {
+        val data = DC_SimpleData("World", mutableProp = 1L)
+        assertEquals(1L, data.mutableProp)
+
+        data.mutableProp = 1024L
+        assertEquals(1024L, data.mutableProp)
     }
 }
