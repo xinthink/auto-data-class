@@ -51,6 +51,7 @@ internal class ParcelableGenerator(
         val concreteClassName = dataClassDef.className
         val creatorClsType = ParameterizedTypeName.get(Parcelable.Creator::class.asClassName(), concreteClassName)
         return addProperty(PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
+                .addAnnotation(JvmStatic::class)
                 .initializer("%L", generateCreator(dataClassDef, creatorClsType, propertyMethods))
                 .build())
     }
