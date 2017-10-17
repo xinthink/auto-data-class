@@ -1,7 +1,6 @@
 package com.fivemiles.auto.dataclass
 
 import com.google.auto.common.AnnotationMirrors.getAnnotationValue
-import com.google.auto.common.MoreElements.getAnnotationMirror
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import com.google.gson.reflect.TypeToken
@@ -10,7 +9,6 @@ import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 import com.squareup.kotlinpoet.*
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
 
@@ -34,7 +32,6 @@ internal class GsonTypeAdapterGenerator(
     }
 
     override fun generate(dataClassDef: DataClassDef,
-                          propertyMethods: Map<String, ExecutableElement>,
                           dataClassSpecBuilder: TypeSpec.Builder) {
         concreteDataClassSimpleName = dataClassDef.className.simpleName()
         val interfaceElement = dataClassDef.element
@@ -46,24 +43,25 @@ internal class GsonTypeAdapterGenerator(
                 .primaryConstructor(FunSpec.constructorBuilder()
                         .addParameter("gson", Gson::class)
                         .build())
-                .addProperties(propertyMethods.flatMap { (p, m) -> propDefaultAndAdapter(p, m) })
-                .addFunction(gsonReaderFunSpec(interfaceElement, propertyMethods))
-                .addFunction(gsonWriterFunSpec(interfaceElement, propertyMethods))
+                .addProperties(dataClassDef.properties.flatMap(this::propDefaultAndAdapter))
+                .addFunction(gsonReaderFunSpec(interfaceElement, dataClassDef.properties))
+                .addFunction(gsonWriterFunSpec(interfaceElement, dataClassDef.properties))
                 .build()
         dataClassSpecBuilder.addType(adapterClsSpec)
     }
 
     /** define default value / typeAdapter for each property */
-    private fun propDefaultAndAdapter(p: String, m: ExecutableElement): List<PropertySpec> {
-        val propDefMirror = getAnnotationMirror(m, DataProp::class.java).orNull()
-        val propType = parsePropertyType(m)
+    private fun propDefaultAndAdapter(propDef: DataPropDef): List<PropertySpec> {
+        val p = propDef.name
+        val propType = propDef.typeKt
+        val defMirror = propDef.dataPropAnnotation
 
         // default value
         val defaultValueProp = PropertySpec.builder("default${p.capitalize()}", propType.asNullable())
                 .mutable(true)
                 .apply {
-                    if (propDefMirror != null) {
-                        val defaultValue = getAnnotationValue(propDefMirror,
+                    if (defMirror != null) {
+                        val defaultValue = getAnnotationValue(defMirror,
                                 DataProp::defaultValueLiteral.name).value as String
                         initializer(if (defaultValue.isNotBlank()) defaultValue else "null")
                     } else {
@@ -79,8 +77,8 @@ internal class GsonTypeAdapterGenerator(
                 .addModifiers(KModifier.PRIVATE)
                 .apply {
                     // Get custom TypeAdapter if any
-                    val customAdapterType = if (propDefMirror != null) {
-                        val annotatedAdapterType = (getAnnotationValue(propDefMirror,
+                    val customAdapterType = if (defMirror != null) {
+                        val annotatedAdapterType = (getAnnotationValue(defMirror,
                                 DataProp::gsonTypeAdapter.name).value as TypeMirror).asTypeName()
                         if (TypeAdapter::class.asTypeName() != annotatedAdapterType)
                             annotatedAdapterType else null
@@ -102,7 +100,7 @@ internal class GsonTypeAdapterGenerator(
     }
 
     /** implements the [TypeAdapter.read] method */
-    private fun gsonReaderFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {
+    private fun gsonReaderFunSpec(type: TypeElement, properties: Set<DataPropDef>): FunSpec {
         val paramJsonReader = "jsonReader"
         return FunSpec.builder("read")
                 .addModifiers(KModifier.OVERRIDE)
@@ -115,8 +113,9 @@ internal class GsonTypeAdapterGenerator(
                 .addStatement("%W")
                 .apply {
                     // define local variables, initialized with default values
-                    propertyMethods.forEach { (p, m) ->
-                        val propType = parsePropertyType(m)
+                    properties.forEach {
+                        val p = it.name
+                        val propType = it.typeKt
                         val nullablePropType = propType.asNullable()
 
                         addStatement("var $p: %T = default${p.capitalize()}", nullablePropType)
@@ -132,31 +131,31 @@ internal class GsonTypeAdapterGenerator(
                     endControlFlow()
 
                     beginControlFlow("when ($paramJsonReader.nextName())")
-                    propertyMethods.forEach { (p, m) -> generatePropertyReader(paramJsonReader, p, m) }
+                    properties.forEach { generatePropertyReader(paramJsonReader, it) }
                     addStatement("else -> $paramJsonReader.skipValue()")
                     endControlFlow()
                     endControlFlow()
                     addStatement("$paramJsonReader.endObject()\n")
 
                     // null safety check
-                    propertyMethods
-                            .filter { (_, m) -> !parsePropertyType(m).nullable }
-                            .forEach { (p) ->
-                                beginControlFlow("if ($p == null)")
-                                addStatement("throw IllegalArgumentException(%S)", "$p must not be null!")
+                    properties
+                            .filter { !it.typeKt.nullable }
+                            .forEach {
+                                beginControlFlow("if (${it.name} == null)")
+                                addStatement("throw IllegalArgumentException(%S)", "${it.name} must not be null!")
                                 endControlFlow()
                             }
 
                     addStatement("return $concreteDataClassSimpleName(%L)",
-                            propertyMethods.keys.joinToString())
+                            properties.map(DataPropDef::name).joinToString())
                 }
                 .build()
     }
 
     private fun FunSpec.Builder.generatePropertyReader(paramJsonReader: String,
-                                                       propName: String,
-                                                       propMethod: ExecutableElement) {
-        val propDefMirror = getAnnotationMirror(propMethod, DataProp::class.java).orNull()
+                                                       propDef: DataPropDef) {
+        val propDefMirror = propDef.dataPropAnnotation
+        val propName = propDef.name
 
         // preferred json field name
         val jsonFieldName: String = if (propDefMirror != null) {
@@ -181,7 +180,7 @@ internal class GsonTypeAdapterGenerator(
     }
 
     /** implements the [TypeAdapter.write] method */
-    private fun gsonWriterFunSpec(type: TypeElement, propertyMethods: Map<String, ExecutableElement>): FunSpec {
+    private fun gsonWriterFunSpec(type: TypeElement, properties: Set<DataPropDef>): FunSpec {
         val paramNameWriter = "jsonWriter"
         val paramNameObj = "value"
 
@@ -195,9 +194,10 @@ internal class GsonTypeAdapterGenerator(
                 .endControlFlow()
                 .addStatement("$paramNameWriter.beginObject()")
                 .apply {
-                    propertyMethods.forEach { (p, m) ->
+                    properties.forEach {
                         // preferred json field name
-                        val propDefMirror = getAnnotationMirror(m, DataProp::class.java).orNull()
+                        val p = it.name
+                        val propDefMirror = it.dataPropAnnotation
                         val jsonFieldName: String = if (propDefMirror != null) {
                             val _fieldName = getAnnotationValue(propDefMirror,
                                     DataProp::jsonField.name).value as String

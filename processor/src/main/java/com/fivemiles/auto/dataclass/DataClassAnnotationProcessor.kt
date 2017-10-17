@@ -15,19 +15,12 @@ import java.io.File
 import java.io.IOException
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.SourceVersion
-import javax.lang.model.element.*
-
+import javax.lang.model.element.Element
+import javax.lang.model.element.ElementKind
+import javax.lang.model.element.Modifier
+import javax.lang.model.element.TypeElement
 
 internal val ANNOTATION_NAME = "@${DataClass::class.simpleName}"
-private const val CLASS_NAME_PREFIX = "DC"
-private const val CLASS_NAME_SEPARATOR = "_"
-
-
-internal fun generatedClassName(originName: Name, suffix: String = "") =
-        generatedClassName("$originName", suffix)
-
-internal fun generatedClassName(originName: String, suffix: String = "") =
-        "$CLASS_NAME_PREFIX$CLASS_NAME_SEPARATOR$originName${if (suffix.isEmpty()) "" else "$CLASS_NAME_SEPARATOR$suffix"}"
 
 /**
  * Annotation processor for auto-data-class
@@ -43,8 +36,6 @@ class DataClassAnnotationProcessor : BasicAnnotationProcessor() {
  * Concrete logic processing the Data Classes
  */
 private class DataClassStep(val processingEnv: ProcessingEnvironment) : BasicAnnotationProcessor.ProcessingStep {
-    private val typeUtils = processingEnv.typeUtils
-    private val elementUtils = processingEnv.elementUtils
     private val errorReporter = ErrorReporter(processingEnv)
     private val dataClassGenerator = DataClassGenerator(processingEnv, errorReporter)
     private var sourceLocation: File? = null

@@ -5,13 +5,11 @@ import android.os.Parcelable
 import android.text.TextUtils
 import com.fivemiles.auto.dataclass.parcel.ParcelAdapter
 import com.google.auto.common.AnnotationMirrors.getAnnotationValue
-import com.google.auto.common.MoreElements.getAnnotationMirror
 import com.squareup.kotlinpoet.*
 import java.io.Serializable
 import java.util.*
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
-import javax.lang.model.element.ExecutableElement
 import javax.lang.model.type.TypeMirror
 
 /**
@@ -33,36 +31,35 @@ internal class ParcelableGenerator(
     }
 
     override fun generate(dataClassDef: DataClassDef,
-                          propertyMethods: Map<String, ExecutableElement>,
                           dataClassSpecBuilder: TypeSpec.Builder) {
         dataClassSpecBuilder
                 .companionObject(TypeSpec.companionObjectBuilder()
-                        .addParcelableCreator(dataClassDef, propertyMethods)
-                        .addCustomAdapters(propertyMethods)
+                        .addParcelableCreator(dataClassDef, dataClassDef.properties)
+                        .addCustomAdapters(dataClassDef.properties)
                         .build())
                 .describeContentsFunSpec()
-                .writeParcelFunSpec(propertyMethods)
+                .writeParcelFunSpec(dataClassDef.properties)
     }
 
     private fun TypeSpec.Builder.addParcelableCreator(
             dataClassDef: DataClassDef,
-            propertyMethods: Map<String, ExecutableElement>
+            properties: Set<DataPropDef>
     ): TypeSpec.Builder {
         val concreteClassName = dataClassDef.className
         val creatorClsType = ParameterizedTypeName.get(Parcelable.Creator::class.asClassName(), concreteClassName)
         return addProperty(PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
                 .addAnnotation(JvmStatic::class)
-                .initializer("%L", generateCreator(dataClassDef, creatorClsType, propertyMethods))
+                .initializer("%L", generateCreator(dataClassDef, creatorClsType, properties))
                 .build())
     }
 
     /** implements [Parcelable.Creator] */
     private fun generateCreator(dataClassDef: DataClassDef,
                                 creatorType: TypeName,
-                                propertyMethods: Map<String, ExecutableElement>): TypeSpec {
+                                properties: Set<DataPropDef>): TypeSpec {
         return TypeSpec.objectBuilder("")
                 .addSuperinterface(creatorType)
-                .addFunction(fromParcelFunSpec(dataClassDef, propertyMethods))
+                .addFunction(fromParcelFunSpec(dataClassDef, properties))
                 .addFunction(FunSpec.builder("newArray")
                         .addModifiers(KModifier.OVERRIDE)
                         .addParameter("size", Int::class)
@@ -75,15 +72,15 @@ internal class ParcelableGenerator(
 
     /** implements the [Parcelable.Creator.createFromParcel] method */
     private fun fromParcelFunSpec(dataClassDef: DataClassDef,
-                                  propertyMethods: Map<String, ExecutableElement>): FunSpec {
+                                  properties: Set<DataPropDef>): FunSpec {
         val paramSource = "source"
         return FunSpec.builder("createFromParcel")
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter(paramSource, Parcel::class)
                 .returns(dataClassDef.className)
                 .addCode("return %T(\n%L\n)", dataClassDef.className, CodeBlock.builder().apply {
-                    propertyMethods.entries.forEachIndexed { i, (_, m) ->
-                        val propType = parsePropertyType(m)
+                    properties.forEachIndexed { i, prop ->
+                        val propType = prop.typeKt
                         val nonNullableType = propType.asNonNullable()
                         if (propType.nullable) {
                             add("if ($paramSource.readByte() == 0.toByte()) ")
@@ -93,7 +90,7 @@ internal class ParcelableGenerator(
                             readValue(paramSource, nonNullableType)
                         }
 
-                        if (i < propertyMethods.size - 1) {
+                        if (i < properties.size - 1) {
                             add(",\n")
                         }
                     }
@@ -148,10 +145,10 @@ internal class ParcelableGenerator(
 
     /** Custom [ParcelAdapter]s, if any, defined as companion object properties */
     private fun TypeSpec.Builder.addCustomAdapters(
-            propertyMethods: Map<String, ExecutableElement>
+            properties: Set<DataPropDef>
     ): TypeSpec.Builder {
-        propertyMethods.forEach { p, m ->
-            val propDef = getAnnotationMirror(m, DataProp::class.java).orNull()
+        properties.forEach {
+            val propDef = it.dataPropAnnotation
             val customAdapterType = if (propDef != null) {
                 val annotatedAdapterType = (getAnnotationValue(propDef,
                         DataProp::parcelAdapter.name).value as TypeMirror).asTypeName()
@@ -160,7 +157,7 @@ internal class ParcelableGenerator(
             } else null
 
             if (customAdapterType != null) {
-                addProperty(PropertySpec.builder(customAdapterPropName(p), customAdapterType)
+                addProperty(PropertySpec.builder(customAdapterPropName(it.name), customAdapterType)
                         .addModifiers(KModifier.PRIVATE)
                         .delegate("lazy { %T() }", customAdapterType)
                         .build())
@@ -181,7 +178,7 @@ internal class ParcelableGenerator(
 
     /** implements the [Parcelable.writeToParcel] method */
     private fun TypeSpec.Builder.writeParcelFunSpec(
-            propertyMethods: Map<String, ExecutableElement>
+            properties: Set<DataPropDef>
     ): TypeSpec.Builder {
         val paramDest = "dest"
         val paramFlags = "flags"
@@ -190,7 +187,7 @@ internal class ParcelableGenerator(
                 .addParameter(paramDest, Parcel::class)
                 .addParameter(paramFlags, Int::class)
                 .addCode(CodeBlock.builder()
-                        .writeParcelFunBody(paramDest, paramFlags, propertyMethods)
+                        .writeParcelFunBody(paramDest, paramFlags, properties)
                         .build()
                 )
                 .build())
@@ -199,12 +196,13 @@ internal class ParcelableGenerator(
     private fun CodeBlock.Builder.writeParcelFunBody(
             paramDest: String,
             paramFlags: String,
-            propertyMethods: Map<String, ExecutableElement>
+            properties: Set<DataPropDef>
     ): CodeBlock.Builder {
-        propertyMethods.entries.forEach { (p, m) ->
-            val propType = parsePropertyType(m)
+        properties.forEach {
+            val p = it.name
+            val propType = it.typeKt
             val nonNullableType = propType.asNonNullable()
-            val propDef = getAnnotationMirror(m, DataProp::class.java).orNull()
+            val propDef = it.dataPropAnnotation
 
             if (propType.nullable) {
                 beginControlFlow("if ($p == null)")
