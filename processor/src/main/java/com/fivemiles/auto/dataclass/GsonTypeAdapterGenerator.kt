@@ -43,9 +43,9 @@ internal class GsonTypeAdapterGenerator(
                 .primaryConstructor(FunSpec.constructorBuilder()
                         .addParameter("gson", Gson::class)
                         .build())
-                .addProperties(dataClassDef.properties.flatMap(this::propDefaultAndAdapter))
-                .addFunction(gsonReaderFunSpec(interfaceElement, dataClassDef.properties))
-                .addFunction(gsonWriterFunSpec(interfaceElement, dataClassDef.properties))
+                .addProperties(dataClassDef.persistentProperties.flatMap(this::propDefaultAndAdapter))
+                .addFunction(gsonReaderFunSpec(interfaceElement, dataClassDef.persistentProperties))
+                .addFunction(gsonWriterFunSpec(interfaceElement, dataClassDef.persistentProperties))
                 .build()
         dataClassSpecBuilder.addType(adapterClsSpec)
     }
@@ -60,13 +60,8 @@ internal class GsonTypeAdapterGenerator(
         val defaultValueProp = PropertySpec.builder("default${p.capitalize()}", propType.asNullable())
                 .mutable(true)
                 .apply {
-                    if (defMirror != null) {
-                        val defaultValue = getAnnotationValue(defMirror,
-                                DataProp::defaultValueLiteral.name).value as String
-                        initializer(if (defaultValue.isNotBlank()) defaultValue else "null")
-                    } else {
-                        initializer("null")
-                    }
+                    val defaultValue = propDef.defaultValueLiteral
+                    initializer(if (defaultValue.isNotBlank()) defaultValue else "null")
                 }
                 .build()
 

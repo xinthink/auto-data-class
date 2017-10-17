@@ -34,11 +34,11 @@ internal class ParcelableGenerator(
                           dataClassSpecBuilder: TypeSpec.Builder) {
         dataClassSpecBuilder
                 .companionObject(TypeSpec.companionObjectBuilder()
-                        .addParcelableCreator(dataClassDef, dataClassDef.properties)
-                        .addCustomAdapters(dataClassDef.properties)
+                        .addParcelableCreator(dataClassDef, dataClassDef.persistentProperties)
+                        .addCustomAdapters(dataClassDef.persistentProperties)
                         .build())
                 .describeContentsFunSpec()
-                .writeParcelFunSpec(dataClassDef.properties)
+                .writeParcelFunSpec(dataClassDef.persistentProperties)
     }
 
     private fun TypeSpec.Builder.addParcelableCreator(

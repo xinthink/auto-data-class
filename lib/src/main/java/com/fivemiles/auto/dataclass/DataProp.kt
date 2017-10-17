@@ -20,5 +20,7 @@ annotation class DataProp(
         /** Customized Gson [TypeAdapter] for this property */
         val gsonTypeAdapter: KClass<out TypeAdapter<*>> = TypeAdapter::class,
         /** Customized [ParcelAdapter] for this property */
-        val parcelAdapter: KClass<out ParcelAdapter<*>> = ParcelAdapter::class
+        val parcelAdapter: KClass<out ParcelAdapter<*>> = ParcelAdapter::class,
+        /** If the property is transient */
+        val isTransient: Boolean = false
 )

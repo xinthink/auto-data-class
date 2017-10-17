@@ -1,6 +1,5 @@
 package com.fivemiles.auto.dataclass
 
-import com.google.auto.common.AnnotationMirrors.getAnnotationValue
 import com.squareup.kotlinpoet.*
 import javax.annotation.Generated
 import javax.annotation.processing.ProcessingEnvironment
@@ -55,22 +54,39 @@ internal class DataClassGenerator(
     private fun TypeSpec.Builder.generateProperties(properties: Set<DataPropDef>): TypeSpec.Builder {
         val constructorBuilder = FunSpec.constructorBuilder()
         properties.forEach {
-            // default value
             val ctorParamBuilder = ParameterSpec.builder(it.name, it.typeKt)
-            val propDefMirror = it.dataPropAnnotation
-            if (propDefMirror != null) {
-                val defaultValue = getAnnotationValue(propDefMirror,
-                        DataProp::defaultValueLiteral.name).value as String
+            val isTransient = it.isTransient
+            val defaultValue = it.defaultValueLiteral
+
+            // add to constructor if non-transient
+            if (!isTransient) {
                 if (defaultValue.isNotBlank()) {
                     ctorParamBuilder.defaultValue("%L", defaultValue)
                 }
-            }
+                constructorBuilder.addParameter(ctorParamBuilder.build())
+            }                            
 
-            constructorBuilder.addParameter(ctorParamBuilder.build())
+            // property declaration
             addProperty(PropertySpec.builder(it.name, it.typeKt)
                     .mutable(it.isMutable)
                     .addModifiers(KModifier.OVERRIDE)
-                    .initializer(it.name)
+                    .apply {
+                        if (!isTransient) {
+                            initializer(it.name)
+                            return@apply
+                        }
+
+                        // transient property should has a default value if non-nullable
+                        when {
+                            defaultValue.isNotBlank() -> initializer(defaultValue)
+                            it.typeKt.nullable -> initializer("null")
+                            else -> errorReporter.reportError(
+                                    "default value should be provided for a non-nullable transient property",
+                                    it.element)
+                        }
+
+                        addAnnotation(Transient::class)
+                    }
                     .build())
         }
 

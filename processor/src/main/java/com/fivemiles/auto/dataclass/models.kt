@@ -1,5 +1,6 @@
 package com.fivemiles.auto.dataclass
 
+import com.google.auto.common.AnnotationMirrors
 import com.google.auto.common.MoreElements
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
@@ -75,6 +76,13 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
         }.toSet()
     }
 
+    /**
+     * The set of non-transient properties of the data class
+     */
+    val persistentProperties: Set<DataPropDef> by lazy {
+        properties.filterNot(DataPropDef::isTransient).toSet()
+    }
+
     private fun propertyMethodsIn(element: TypeElement, methods: Set<ExecutableElement>?): Set<ExecutableElement> =
             when (methods) {
                 null -> setOf()
@@ -132,7 +140,8 @@ internal data class DataPropDef(val dataClassDef: DataClassDef,
             it is ExecutableElement &&
                     Modifier.ABSTRACT in it.modifiers &&
                     it.parameters.size == 1 &&
-                    typeUtils.isSameType(it.parameters[0].asType(), element.returnType)
+                    typeUtils.isSameType(it.parameters[0].asType(), element.returnType) &&
+                    it.simpleName.matches("""^(set)?$name$""".toRegex(RegexOption.IGNORE_CASE))
         }
     }
 
@@ -143,6 +152,20 @@ internal data class DataPropDef(val dataClassDef: DataClassDef,
 
     fun annotation(annotationClass: Class<out Annotation>): AnnotationMirror? =
             MoreElements.getAnnotationMirror(element, annotationClass).orNull()
+
+    val isTransient: Boolean by lazy {
+        dataPropAnnotation?.let {
+            AnnotationMirrors.getAnnotationValue(it,
+                    DataProp::isTransient.name).value as Boolean
+        } ?: false
+    }
+
+    val defaultValueLiteral: String by lazy {
+        dataPropAnnotation?.let {
+            AnnotationMirrors.getAnnotationValue(it,
+                    DataProp::defaultValueLiteral.name).value as String
+        } ?: ""
+    }
 }
 
 /** Whether the given method has a default implement */
