@@ -6,8 +6,7 @@ import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
@@ -78,5 +77,18 @@ class CustomTypeAdapterTest {
         json = """{"numeralBool": "truetrue", "jsonBool": false}"""
         data = gson.fromJson(json, CustomAdapterData::class.java)
         assertFalse(data.numeralBool)
+    }
+
+    /**
+     * true to 1, false to 0
+     */
+    @Test fun writeBooleanAsNumber() {
+        var data: CustomAdapterData = DC_CustomAdapterData(numeralBool = true, jsonBool = true)
+        var json = gson.toJson(data)
+        assertEquals("""{"numeralBool":1,"jsonBool":true}""", json)
+
+        data = DC_CustomAdapterData(numeralBool = false, jsonBool = false)
+        json = gson.toJson(data)
+        assertEquals("""{"numeralBool":0,"jsonBool":false}""", json)
     }
 }
