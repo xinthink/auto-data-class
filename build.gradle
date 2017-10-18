@@ -40,7 +40,7 @@ plugins {
 }
 
 group 'com.fivemiles.auto'
-version '0.1.0'
+version '0.2.0'
 
 // load local.properties
 if (file('local.properties').exists()) {
@@ -61,7 +61,8 @@ subprojects {
     }
 
     dependencies {
-        compile deps.kotlin.stdlib
+        compileOnly deps.kotlin.stdlib
+        testRuntime deps.kotlin.stdlib
         testCompile deps.junit
         testCompile deps.mockito.inline
     }
