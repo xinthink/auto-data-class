@@ -95,7 +95,7 @@ Not all parcelable data types are supported, for example, `android.util.SparseAr
 See this [test case][example-parcel-types] for more details.
 
 ### Overriding Built-in Methods
-Because of the nature of Kotlin [interface][Kotlin Interfaces] and [data class][Kotlin Data Classes], it will be a little difficult to override the built-in methods such as `toString`, `hashCode`.
+Because of the nature of Kotlin [interface][Kotlin Interfaces] and [data class][Kotlin Data Classes], it will be a little difficult to override built-in methods such as `toString`, `hashCode`.
 
 Prefer [extension functions][Kotlin Extensions] whenever possible.
 
@@ -108,8 +108,8 @@ Prefer [extension functions][Kotlin Extensions] whenever possible.
 }
 ```
 
-Or you will have to create a wrapper class which overrides the built-in methods, and [delegates][Kotlin Delegation] all the others to the generated data class.
-> A example for this case will be available later
+Or you will have to create a wrapper class which overrides built-in methods, and [delegates][Kotlin Delegation] all the others to the generated data class.
+> An example for this case will be available later
 
 ## License
 
