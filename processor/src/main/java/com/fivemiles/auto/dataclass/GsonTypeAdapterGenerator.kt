@@ -26,10 +26,7 @@ internal class GsonTypeAdapterGenerator(
 
     private lateinit var concreteDataClassSimpleName: String
 
-    override fun applicable(dataClassDef: DataClassDef): Boolean {
-        val adc = dataClassDef.element.getAnnotation(DataClass::class.java)
-        return adc.generateGsonTypeAdapter
-    }
+    override fun applicable(dataClassDef: DataClassDef): Boolean = dataClassDef.isGenerateGsonTypeAdapter
 
     override fun generate(dataClassDef: DataClassDef,
                           dataClassSpecBuilder: TypeSpec.Builder) {
@@ -247,6 +244,6 @@ internal class GsonTypeAdapterGenerator(
                     .add(")${if (asType) ".type" else ""}")  // when used as a type variable, the `type` property should be returned
 
     companion object {
-        private const val GSON_ADAPTER_CLASS_NAME = "GsonTypeAdapter"
+        internal const val GSON_ADAPTER_CLASS_NAME = "GsonTypeAdapter"
     }
 }

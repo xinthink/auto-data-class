@@ -26,7 +26,7 @@ internal class DataClassGenerator(
      * @param element the interface element which defines the data class
      */
     @Suppress("UNCHECKED_CAST")
-    fun generate(element: TypeElement): TypeSpec {
+    fun generate(element: TypeElement): Pair<DataClassDef, TypeSpec> {
         val dataClassDef = DataClassDef(processingEnv, errorReporter, element)
 
         val builder = TypeSpec.classBuilder(dataClassDef.className)
@@ -47,7 +47,7 @@ internal class DataClassGenerator(
                 it.generate(dataClassDef, builder)
             }
         }
-        return builder.build()
+        return dataClassDef to builder.build()
     }
 
     // add stuff with properties

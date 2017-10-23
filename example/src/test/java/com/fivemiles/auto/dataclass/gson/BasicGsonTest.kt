@@ -1,7 +1,6 @@
 package com.fivemiles.auto.dataclass.gson
 
 import com.fivemiles.auto.dataclass.DataClass
-import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
@@ -40,7 +39,7 @@ class BasicGsonTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory())
+                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
                 .create()
     }
 

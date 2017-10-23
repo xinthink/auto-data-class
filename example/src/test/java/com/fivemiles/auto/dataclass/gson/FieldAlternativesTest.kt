@@ -2,10 +2,8 @@ package com.fivemiles.auto.dataclass.gson
 
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
-import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.TypeAdapter
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -19,11 +17,6 @@ import org.junit.Test
                 jsonField = "source",
                 jsonFieldAlternate = arrayOf("link", "url")
         ) get
-
-    companion object {
-        fun typeAdapter(gson: Gson): TypeAdapter<AdaptiveImage> =
-                DC_AdaptiveImage.GsonTypeAdapter(gson)
-    }
 }
 
 /**
@@ -34,7 +27,7 @@ class FieldAlternativesTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory())
+                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
                 .create()
     }
 

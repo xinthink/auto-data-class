@@ -3,10 +3,8 @@ package com.fivemiles.auto.dataclass.gson
 
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
-import com.fivemiles.auto.dataclass.gson.util.TestTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.TypeAdapter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -24,11 +22,6 @@ import org.junit.Test
         @DataProp(isTransient = true,
                 defaultValueLiteral = "\"non-nullable transient property\""
         ) get
-
-    companion object {
-        fun typeAdapter(gson: Gson): TypeAdapter<TransientGsonData> =
-                DC_TransientGsonData.GsonTypeAdapter(gson)
-    }
 }
 
 class TransientGsonFieldTest {
@@ -36,7 +29,7 @@ class TransientGsonFieldTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory())
+                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
                 .create()
     }
 

@@ -8,7 +8,7 @@ An annotation processor generates [Kotlin Data Classes] and the boilerplates for
 Declare your data model as an interface, and annotate it with `@DataClass`
 
 ```kotlin
-@DataClass interface Address {
+@DataClass interface Address : Parcelable {
     val street: String?
     val city: String
 }
@@ -20,7 +20,7 @@ Now build the project, a data class implementing this interface will be generate
 internal data class DC_Address(
     override val street: String?,
     override val city: String
-) : Address, Parcelable {
+) : Address {
 
     class GsonTypeAdapter(gson: Gson) : TypeAdapter<Address>() {
         ...
@@ -68,7 +68,24 @@ Furthermore, you can customize the generated code with the `@DataProp` annotatio
 }
 ```
 
-See [test cases][example-tests] of the `example` module for more details.
+A `TypeAdapterFactory` for Gson can also be generated, which can be used to setup the `Gson` instance. All you have to do is annotating an object/interface/class with `@GsonTypeAdapterFactory`.
+
+```kotlin
+// Using objects, you can also use interfaces or abstract classes.
+@GsonTypeAdapterFactory object MyTypeAdapterFactory {
+    fun create(): TypeAdapterFactory = DC_MyTypeAdapterFactory()
+}
+```
+
+So that you can build a `Gson` instance like this:
+
+```kotlin
+GsonBuilder()
+    .registerTypeAdapterFactory(MyTypeAdapterFactory.create())
+    .create()
+```
+
+See the [test cases][example-tests] for more details.
 
 ## Integration
 Using the [kotlin-kapt] plugin
