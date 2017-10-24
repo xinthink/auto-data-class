@@ -68,7 +68,7 @@ Furthermore, you can customize the generated code with the `@DataProp` annotatio
 }
 ```
 
-A `TypeAdapterFactory` for Gson can also be generated, which can be used to setup the `Gson` instance. All you have to do is annotating an object/interface/class with `@GsonTypeAdapterFactory`.
+A `TypeAdapterFactory` can also be generated, which can be used to setup the `Gson` instance. All you have to do is annotating an object/interface/class with `@GsonTypeAdapterFactory`.
 
 ```kotlin
 // Using objects, you can also use interfaces or abstract classes.
@@ -125,8 +125,30 @@ Prefer [extension functions][Kotlin Extensions] whenever possible.
 }
 ```
 
-Or you will have to create a wrapper class which overrides built-in methods, and [delegates][Kotlin Delegation] all the others to the generated data class.
-> An example for this case will be available later
+Or you will have to create a wrapper class which overrides the built-in methods, and [delegates][Kotlin Delegation] all the others to the generated data class.
+
+```kotlin
+/** The data class definition, internal usage only. */
+@DataClass internal interface PersonInternal {
+    val name: String
+    val age: Int
+}
+
+/** The public wrapper of the data class, in which you can rewrite the built-in methods. */
+class Person
+private constructor(p: PersonInternal) : PersonInternal by p {
+
+    override fun toString(): String {
+        return "My name is $name, I'm $age years old."
+    }
+
+    companion object {
+        fun create(name: String, age: Int): Person = Person(DC_PersonInternal(name, age))
+    }
+}
+```
+
+See this [test case][example-overriding] for more details.
 
 ## License
 
@@ -154,3 +176,4 @@ Or you will have to create a wrapper class which overrides built-in methods, and
 [auto-value-gson]: https://github.com/rharter/auto-value-gson
 [example-tests]: https://github.com/xinthink/auto-data-class/tree/master/example/src/test/java/com/fivemiles/auto/dataclass
 [example-parcel-types]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/parcel/ParcelableTypesTest.kt
+[example-overriding]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/OverridingTest.kt
