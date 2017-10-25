@@ -1,9 +1,9 @@
-apply {
-    plugin("kotlin-kapt")
+plugins {
+    kotlin("kapt")
 }
 
 dependencies {
-    val kt = kotlin("stdlib-jre7")
+    val kt = kotlin(deps["kt"])
     compileOnly(kt)
 
     compile(project(":lib"))
@@ -17,5 +17,5 @@ dependencies {
 
     testRuntime(kt)
     testCompile(deps["junit"])
-    testCompile(deps["mockito"]["inline"])
+    testCompile(deps["mockito.inline"])
 }

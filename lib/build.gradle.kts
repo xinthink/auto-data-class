@@ -1,5 +1,5 @@
 dependencies {
-    val kt = kotlin("stdlib-jre7")
+    val kt = kotlin(deps["kt"])
     compileOnly(kt)
 
     compileOnly(deps["android"])

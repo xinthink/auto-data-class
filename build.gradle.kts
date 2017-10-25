@@ -1,9 +1,4 @@
-import java.io.FileInputStream
-import java.util.Properties
-
 import com.jfrog.bintray.gradle.BintrayExtension
-import DependencyGroup.Companion.group
-
 
 plugins {
     val kotlinVersion = "1.1.51"
@@ -22,38 +17,29 @@ buildscript {
 
 group = "com.fivemiles.auto"
 version = "0.2.0"
-
-// load local.properties
-val localPropsFile: File = rootProject.file("local.properties")
-if (localPropsFile.exists()) {
-    Properties().apply {
-        load(FileInputStream(localPropsFile))
-        forEach { (k, v) ->
-            rootProject.ext["$k"] = v
-        }
-    }
-}
+loadProperties("local.properties", ext)  // load properties from local.properties
 
 subprojects {
     extra.deps {
-        set(
-            "auto" to group(
-                "common" to "com.google.auto:auto-common:0.8",
-                "service" to "com.google.auto.service:auto-service:1.0-rc3"
-            ),
-            "android" to "com.google.android:android:2.1.2",
-            "kotlinpoet" to "com.squareup:kotlinpoet:0.5.0",
-            "gson" to "com.google.code.gson:gson:2.8.0",
+        "kt"("stdlib-jre7")
+        "auto" {
+            "common"("com.google.auto:auto-common:0.8")
+            "service"("com.google.auto.service:auto-service:1.0-rc3")
+        }
+        "android"("com.google.android:android:2.1.2")
+        "kotlinpoet"("com.squareup:kotlinpoet:0.5.0")
+        "gson"("com.google.code.gson:gson:2.8.0")
 
-            // for testing
-            "junit" to "junit:junit:4.12",
-            "truth" to "com.google.truth:truth:0.27",
-            "compile_testing" to "com.google.testing.compile:compile-testing:0.9",
-            "mockito" to group(
-                "core" to "org.mockito:mockito-core:2.10.0",
-                "inline" to "org.mockito:mockito-inline:2.10.0"
-            )
-        )
+        // for testing
+        "junit"("junit:junit:4.12")
+        "google_testing" {
+            "truth"("com.google.truth:truth:0.27")
+            "compile"("com.google.testing.compile:compile-testing:0.9")
+        }
+        "mockito" {
+            "core"("org.mockito:mockito-core:2.10.0")
+            "inline"("org.mockito:mockito-inline:2.10.0")
+        }
     }
 
     apply {
