@@ -1,4 +1,0 @@
-dependencies {
-    compileOnly deps.android.core
-    compileOnly deps.gson
-}
