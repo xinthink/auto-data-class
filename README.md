@@ -5,7 +5,7 @@
 An annotation processor generates [Kotlin Data Classes] and the boilerplates for Parcelable & GSON TypeAdapter. Inspired by [AutoValue] and its popular extensions [auto-value-parcel] & [auto-value-gson].
 
 ## Usage
-Declare your data model as an interface, and annotate it with `@DataClass`
+Declare your data model as an interface/abstract class, and annotate it with `@DataClass`
 
 ```kotlin
 @DataClass interface Address : Parcelable {
@@ -14,7 +14,7 @@ Declare your data model as an interface, and annotate it with `@DataClass`
 }
 ```
 
-Now build the project, a data class implementing this interface will be generated, also the parcelable & TypeAdapter codes.
+Now build the project, a data class will be generated, with all the boilerplates needed to implement `Parcelable` & Gson `TypeAdapter`.
 
 ```kotlin
 internal data class DC_Address(
@@ -22,10 +22,15 @@ internal data class DC_Address(
     override val city: String
 ) : Address {
 
-    class GsonTypeAdapter(gson: Gson) : TypeAdapter<Address>() {
+    override fun writeToParcel(dest: Parcel, flags: Int)
+    ...
+
+    class GsonTypeAdapter(gson: Gson) : TypeAdapter<Address>()
+    ...
+    companion object {
+        val CREATOR: Parcelable.Creator<DC_Address>
         ...
     }
-    ...
 }
 ```
 
@@ -46,7 +51,7 @@ Just like how you'll use [AutoValue], it's convenient to write factory methods o
         fun typeAdapter(gson: Gson): TypeAdapter<Address> =
             DC_Address.GsonTypeAdapter(gson)
                 .apply {
-                    // setting default values for the omission of the json fields (it's not required)
+                    // if needed, you can set default values for the omission of the json fields
                     defaultCity = "Beijing"
                     defaultStreet = "Unknown"
                 }

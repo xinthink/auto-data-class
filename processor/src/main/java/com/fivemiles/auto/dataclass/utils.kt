@@ -3,7 +3,9 @@ package com.fivemiles.auto.dataclass
 import com.google.auto.common.MoreElements.isAnnotationPresent
 import com.squareup.kotlinpoet.*
 import org.jetbrains.annotations.Nullable
+import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
 
 
 /**
@@ -46,3 +48,9 @@ private fun mapToKotlinType(type: TypeName): TypeName {
             .map(::mapToKotlinType)
             .toTypedArray())
 }
+
+val Element.isInterfaceOrAbstractClass: Boolean
+        get() = kind.isInterface || (kind.isClass && Modifier.ABSTRACT in modifiers)
+
+val Element.isNestedType: Boolean
+        get() = enclosingElement.kind.let { it.isInterface || it.isClass }

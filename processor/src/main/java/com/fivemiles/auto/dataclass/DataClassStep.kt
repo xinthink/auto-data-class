@@ -21,22 +21,9 @@ internal class DataClassStep(processingEnv: ProcessingEnvironment,
 
     override val annotation = DataClass::class.java
 
-    override fun isApplicable(element: Element): Boolean = element is TypeElement && element.kind.isInterface
+    override fun isApplicable(element: Element): Boolean = element.isInterfaceOrAbstractClass
 
-    override fun processElement(element: TypeElement) {
-        val adc = element.getAnnotation(annotation)
-        if (adc == null) {
-            // This shouldn't happen unless the compilation environment is buggy,
-            // but it has happened in the past and can crash the compiler.
-            errorReporter.abortWithError("annotation processor for $annotationName was invoked with a type" +
-                    " that does not have that annotation; this is probably a compiler bug", element)
-        }
-        if (!isApplicable(element)) {
-            errorReporter.abortWithError("$annotationName only applies to interfaces", element)
-        }
-
-        abortIfNested(element)
-
+    override fun doProcessElement(element: TypeElement) {
         val (dataClassDef, dataClassSpec) = dataClassGenerator.generate(element)
         generateFile(element, dataClassSpec)
         _processedDataClasses.add(dataClassDef)

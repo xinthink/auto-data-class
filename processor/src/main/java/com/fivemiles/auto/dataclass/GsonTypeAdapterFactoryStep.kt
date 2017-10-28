@@ -1,7 +1,7 @@
 package com.fivemiles.auto.dataclass
 
-import com.fivemiles.auto.dataclass.gson.GsonTypeAdapterFactory
 import com.fivemiles.auto.dataclass.GsonTypeAdapterGenerator.Companion.GSON_ADAPTER_CLASS_NAME
+import com.fivemiles.auto.dataclass.gson.GsonTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import com.google.gson.TypeAdapterFactory
@@ -29,29 +29,16 @@ internal class GsonTypeAdapterFactoryStep(processingEnv: ProcessingEnvironment,
 
     override val annotation = GsonTypeAdapterFactory::class.java
 
-    override fun isApplicable(element: Element): Boolean = (element is TypeElement) && (element.kind.isInterface ||
-            (element.kind.isClass))
+    override fun isApplicable(element: Element): Boolean =
+            element.kind.isInterface || element.kind.isClass
 
-    override fun processElement(element: TypeElement) {
-        val adc = element.getAnnotation(annotation)
-        if (adc == null) {
-            // This shouldn't happen unless the compilation environment is buggy,
-            // but it has happened in the past and can crash the compiler.
-            errorReporter.abortWithError("annotation processor for $annotationName was invoked with a type" +
-                    " that does not have that annotation; this is probably a compiler bug", element)
-        }
-        if (!isApplicable(element)) {
-            errorReporter.abortWithError("$annotationName only applies to interfaces or classes", element)
-        }
-
-        abortIfNested(element)
-
+    override fun doProcessElement(element: TypeElement) {
         val spec = generateTypeAdapterFactory(element)
         generateFile(element, spec)
     }
 
     private fun generateTypeAdapterFactory(element: TypeElement): TypeSpec {
-        val factoryClsName = generatedClassName(element.simpleName)
+        val factoryClsName = generatedClassName(element)
         val isAdapterFactory = isTypeAdapterFactory(element)
         val superType = if (isAdapterFactory) element.asClassName() else TypeAdapterFactory::class.asClassName()
 

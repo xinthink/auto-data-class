@@ -48,8 +48,8 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
      * [ClassName] of the data class to be generated
      */
     val className: ClassName by lazy {
-        val simpleName = generatedClassName(element.simpleName, DATA_CLASS_NAME_SUFFIX)
-        element.asClassName().peerClass(simpleName)
+        val simpleName = generatedClassName(element, DATA_CLASS_NAME_SUFFIX)
+        element.findRootTypeElement().asClassName().peerClass(simpleName)
     }
 
     val dataClassAnnotation: AnnotationMirror? by lazy { annotation(element, DataClass::class.java) }
@@ -91,6 +91,9 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
     val persistentProperties: Set<DataPropDef> by lazy {
         properties.filterNot(DataPropDef::isTransient).toSet()
     }
+
+    private fun TypeElement.findRootTypeElement(): TypeElement =
+            if (isNestedType) (enclosingElement as TypeElement).findRootTypeElement() else this
 
     private fun propertyMethodsIn(element: TypeElement, methods: Set<ExecutableElement>?): Set<ExecutableElement> =
             when (methods) {
@@ -192,8 +195,14 @@ internal fun hasDefaultImplement(element: TypeElement,
 internal fun annotation(element: Element, annotationClass: Class<out Annotation>): AnnotationMirror? =
         MoreElements.getAnnotationMirror(element, annotationClass).orNull()
 
-internal fun generatedClassName(originName: Name, suffix: String = "") =
-        generatedClassName("$originName", suffix)
+/** Get the generated class name for the given element */
+internal fun generatedClassName(element: TypeElement, suffix: String = ""): String
+        = generatedClassName(generatedClassSimpleName(element), suffix)
+
+private fun generatedClassSimpleName(element: Element): String =
+        if (element.isNestedType)
+            "${generatedClassSimpleName(element.enclosingElement)}_${element.simpleName}"
+        else element.simpleName.toString()
 
 private fun generatedClassName(originName: String, suffix: String = "") =
         "$CLASS_NAME_PREFIX$CLASS_NAME_SEPARATOR$originName${if (suffix.isEmpty()) "" else "$CLASS_NAME_SEPARATOR$suffix"}"

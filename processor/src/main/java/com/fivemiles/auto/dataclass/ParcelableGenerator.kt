@@ -24,7 +24,7 @@ internal class ParcelableGenerator(
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
 
-    override fun applicable(dataClassDef: DataClassDef): Boolean {
+    override fun isApplicable(dataClassDef: DataClassDef): Boolean {
         val parcelableType = elementUtils.getTypeElement(Parcelable::class.qualifiedName)?.asType()
         val dataClassType = dataClassDef.element.asType()
         return parcelableType != null && typeUtils.isAssignable(dataClassType, parcelableType)

@@ -1,7 +1,6 @@
 package com.fivemiles.auto.dataclass
 
 import com.squareup.kotlinpoet.TypeSpec
-import javax.lang.model.element.ExecutableElement
 
 internal interface FacetGenerator {
 
@@ -10,7 +9,7 @@ internal interface FacetGenerator {
      *
      * @param dataClassDef definition context about the data class
      */
-    fun applicable(dataClassDef: DataClassDef): Boolean = true
+    fun isApplicable(dataClassDef: DataClassDef): Boolean = true
 
     /**
      * Add any facet to the given data class.

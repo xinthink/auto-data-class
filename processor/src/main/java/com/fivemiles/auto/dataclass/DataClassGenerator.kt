@@ -30,7 +30,10 @@ internal class DataClassGenerator(
         val dataClassDef = DataClassDef(processingEnv, errorReporter, element)
 
         val builder = TypeSpec.classBuilder(dataClassDef.className)
-                .addSuperinterface(element.asClassName())
+                .apply {
+                    if (element.kind.isInterface) addSuperinterface(element.asClassName())
+                    else superclass(element.asClassName())
+                }
                 .addModifiers(KModifier.DATA, KModifier.INTERNAL)
                 .addAnnotation(AnnotationSpec.builder(Generated::class)
                         .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
@@ -43,7 +46,7 @@ internal class DataClassGenerator(
 
         // add extra facets to the data class
         facetGenerators.forEach {
-            if (it.applicable(dataClassDef)) {
+            if (it.isApplicable(dataClassDef)) {
                 it.generate(dataClassDef, builder)
             }
         }

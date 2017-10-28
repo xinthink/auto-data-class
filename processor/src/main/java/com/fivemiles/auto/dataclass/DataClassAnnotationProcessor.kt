@@ -16,6 +16,7 @@ import java.io.IOException
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
+import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
 
 /**
@@ -72,7 +73,7 @@ internal abstract class AbstractProcessingStep(
     protected val errorReporter = ErrorReporter(processingEnv)
 
     protected abstract val annotation: Class<out Annotation>
-    protected val annotationName: String by lazy { annotation.simpleName }
+    protected val annotationName: String by lazy { "@${annotation.simpleName}" }
 
     override fun annotations() = setOf(annotation)
 
@@ -108,27 +109,34 @@ internal abstract class AbstractProcessingStep(
 
     protected abstract fun isApplicable(element: Element): Boolean
 
-    protected abstract fun processElement(element: TypeElement)
-
-    // nested classes not supported for now
-    protected fun abortIfNested(type: TypeElement) {
-        val enclosingKind = type.enclosingElement.kind
-        if (enclosingKind.isClass || enclosingKind.isInterface) {
-            errorReporter.abortWithError("$annotationName class must not be nested", type)
+    private fun processElement(element: TypeElement) {
+        val adc = element.getAnnotation(annotation)
+        if (adc == null) {
+            // This shouldn't happen unless the compilation environment is buggy,
+            // but it has happened in the past and can crash the compiler.
+            errorReporter.abortWithError("annotation processor for $annotationName was invoked with a type" +
+                    " that does not have that annotation; this is probably a compiler bug", element)
         }
+        if (!isApplicable(element)) {
+            errorReporter.abortWithError("$annotationName is not applicable", element)
+        }
+
+        checkModifiersIfNested(element)
+        doProcessElement(element)
     }
 
-//    protected fun checkModifiersIfNested(type: TypeElement) {
-//        val enclosingKind = type.enclosingElement.kind
-//        if (enclosingKind.isClass || enclosingKind.isInterface) {
-//            if (Modifier.PRIVATE in type.modifiers) {
-//                errorReporter.abortWithError("Nested $annotationName class must not be private", type)
-//            }
-//            if (Modifier.STATIC !in type.modifiers) {
-//                errorReporter.abortWithError("Nested $annotationName class must be static", type)
-//            }
-//        }
-//    }
+    protected abstract fun doProcessElement(element: TypeElement)
+
+    private fun checkModifiersIfNested(type: TypeElement) {
+        if (type.isNestedType) {
+            if (Modifier.PRIVATE in type.modifiers) {
+                errorReporter.abortWithError("Nested $annotationName class must not be private", type)
+            }
+            if (Modifier.STATIC !in type.modifiers) {
+                errorReporter.abortWithError("Nested $annotationName class must be static", type)
+            }
+        }
+    }
 
     private fun getSourceLocation(): File = sourceLocationManager.getSourceLocation()
 

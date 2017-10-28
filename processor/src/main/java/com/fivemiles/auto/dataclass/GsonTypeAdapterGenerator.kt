@@ -26,7 +26,7 @@ internal class GsonTypeAdapterGenerator(
 
     private lateinit var concreteDataClassSimpleName: String
 
-    override fun applicable(dataClassDef: DataClassDef): Boolean = dataClassDef.isGenerateGsonTypeAdapter
+    override fun isApplicable(dataClassDef: DataClassDef): Boolean = dataClassDef.isGenerateGsonTypeAdapter
 
     override fun generate(dataClassDef: DataClassDef,
                           dataClassSpecBuilder: TypeSpec.Builder) {
