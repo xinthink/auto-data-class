@@ -5,7 +5,7 @@ plugins {
 
     kotlin("jvm") version kotlinVersion apply false
     kotlin("kapt") version kotlinVersion apply false
-    id("com.jfrog.bintray") version "1.7.3" apply false
+    id("com.jfrog.bintray") version "1.7.3"
 }
 
 buildscript {
@@ -16,7 +16,7 @@ buildscript {
 }
 
 group = "com.fivemiles.auto"
-version = "0.2.0"
+version = "0.3.0"
 loadProperties("local.properties", ext)  // load properties from local.properties
 
 subprojects {
