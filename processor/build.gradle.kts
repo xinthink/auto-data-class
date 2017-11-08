@@ -1,19 +1,18 @@
 import org.gradle.internal.jvm.Jvm
 
 dependencies {
-    val kt = kotlin(deps["kt"])
     compileOnly(kt)
 
     compile(project(":lib"))
-    compile(deps["auto.common"])
-//    compile(deps["auto.service"])
-    compile(deps["kotlinpoet"])
-    compile(deps["gson"])
-    compileOnly(deps["android"])
+    compile(D.Auto.common)
+//    compile(D.Auto.service)
+    compile(D.ktpoet)
+    compile(D.gson)
+    compileOnly(D.android)
 
     testRuntime(kt)
-    testCompile(deps["junit"])
-    testCompile(deps["google_testing.truth"])
-    testCompile(deps["google_testing.compile"])
+    testCompile(D.junit)
+    testCompile(D.GoogleTest.truth)
+    testCompile(D.GoogleTest.compile)
     testCompile(files(Jvm.current().toolsJar))
 }

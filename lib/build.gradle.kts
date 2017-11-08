@@ -1,10 +1,9 @@
 dependencies {
-    val kt = kotlin(deps["kt"])
     compileOnly(kt)
 
-    compileOnly(deps["android"])
-    compileOnly(deps["gson"])
+    compileOnly(D.android)
+    compileOnly(D.gson)
 
     testRuntime(kt)
-    testCompile(deps["junit"])
+    testCompile(D.junit)
 }

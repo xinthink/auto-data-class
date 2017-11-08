@@ -11,12 +11,11 @@ java.sourceSets.forEach {
 }
 
 dependencies {
-    val kt = kotlin(deps["kt"])
     compileOnly(kt)
 
     compile(project(":lib"))
-    compile(deps["gson"])
-    compile(deps["android"])
+    compile(D.gson)
+    compile(D.android)
     kapt(project(":processor"))
     compileOnly(project(":processor"))
 
@@ -24,6 +23,6 @@ dependencies {
     testCompileOnly(project(":processor"))
 
     testRuntime(kt)
-    testCompile(deps["junit"])
-    testCompile(deps["mockito.inline"])
+    testCompile(D.junit)
+    testCompile(D.Mockito.inline)
 }

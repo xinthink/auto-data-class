@@ -1,10 +1,8 @@
 import com.jfrog.bintray.gradle.BintrayExtension
 
 plugins {
-    val kotlinVersion = "1.1.51"
-
-    kotlin("jvm") version kotlinVersion apply false
-    kotlin("kapt") version kotlinVersion apply false
+    kotlin("jvm") version D.kt_version apply false
+    kotlin("kapt") version D.kt_version apply false
     id("com.jfrog.bintray") version "1.7.3"
 }
 
@@ -20,28 +18,6 @@ version = "0.3.0"
 loadProperties("local.properties", ext)  // load properties from local.properties
 
 subprojects {
-    extra.deps {
-        "kt"("stdlib-jre7")
-        "auto" {
-            "common"("com.google.auto:auto-common:0.8")
-            "service"("com.google.auto.service:auto-service:1.0-rc3")
-        }
-        "android"("com.google.android:android:2.1.2")
-        "kotlinpoet"("com.squareup:kotlinpoet:0.5.0")
-        "gson"("com.google.code.gson:gson:2.8.0")
-
-        // for testing
-        "junit"("junit:junit:4.12")
-        "google_testing" {
-            "truth"("com.google.truth:truth:0.27")
-            "compile"("com.google.testing.compile:compile-testing:0.9")
-        }
-        "mockito" {
-            "core"("org.mockito:mockito-core:2.10.0")
-            "inline"("org.mockito:mockito-inline:2.10.0")
-        }
-    }
-
     apply {
         plugin("kotlin")
     }
