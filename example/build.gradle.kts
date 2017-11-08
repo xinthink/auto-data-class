@@ -1,5 +1,13 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
+
 plugins {
     kotlin("kapt")
+}
+
+java.sourceSets.forEach {
+    it.withConvention(KotlinSourceSet::class) {
+        kotlin.srcDir("$buildDir/generated/source/kapt/${it.name}")
+    }
 }
 
 dependencies {
