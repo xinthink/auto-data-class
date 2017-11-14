@@ -6,6 +6,7 @@ import com.google.gson.TypeAdapter
 
 @DataClass interface EnclosingData: Parcelable {
     val name: String
+    val nested: NestedData?
 
     @DataClass interface NestedData: Parcelable {
         val data: Int

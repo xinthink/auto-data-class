@@ -9,6 +9,7 @@ import java.beans.Introspector
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
 import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
 
 private const val CLASS_NAME_PREFIX = "DC"
@@ -159,6 +160,8 @@ internal data class DataPropDef(val dataClassDef: DataClassDef,
 
     /** Kotlin [TypeName] of the property */
     val typeKt: TypeName by lazy { parsePropertyType(element) }
+
+    val typeMirror: TypeMirror by lazy { element.returnType }
 
     val dataPropAnnotation: AnnotationMirror? by lazy { annotation(element, DataProp::class.java) }
 

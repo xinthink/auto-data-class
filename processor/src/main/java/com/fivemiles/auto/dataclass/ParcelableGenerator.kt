@@ -9,7 +9,6 @@ import com.squareup.kotlinpoet.*
 import java.io.Serializable
 import java.util.*
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.type.TypeMirror
 
 /**
@@ -23,6 +22,10 @@ internal class ParcelableGenerator(
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
+
+    private val parcelableTypeMirror: TypeMirror by lazy {
+        elementUtils.getTypeElement(PARCELABLE.canonicalName).asType()
+    }
 
     override fun isApplicable(dataClassDef: DataClassDef): Boolean {
         val parcelableType = elementUtils.getTypeElement(Parcelable::class.qualifiedName)?.asType()
@@ -81,13 +84,12 @@ internal class ParcelableGenerator(
                 .addCode("return %T(\n%L\n)", dataClassDef.className, CodeBlock.builder().apply {
                     properties.forEachIndexed { i, prop ->
                         val propType = prop.typeKt
-                        val nonNullableType = propType.asNonNullable()
                         if (propType.nullable) {
                             add("if ($paramSource.readByte() == 0.toByte()) ")
-                                    .readValue(paramSource, nonNullableType)
+                                    .readValue(paramSource, prop)
                                     .add(" else null")
                         } else {
-                            readValue(paramSource, nonNullableType)
+                            readValue(paramSource, prop)
                         }
 
                         if (i < properties.size - 1) {
@@ -98,11 +100,19 @@ internal class ParcelableGenerator(
                 .build()
     }
 
-    private fun parcelableType(originType: TypeName): TypeName =
-            (originType as? ParameterizedTypeName)?.rawType ?: originType
+    private fun parcelableType(prop: DataPropDef): TypeName =
+            if (isParcelable(prop)) PARCELABLE
+            else {
+                val nonNullType = prop.typeKt.asNonNullable()
+                (nonNullType as? ParameterizedTypeName)?.rawType ?: nonNullType
+            }
 
-    private fun CodeBlock.Builder.readValue(sourceParam: String, type: TypeName): CodeBlock.Builder {
-        val rawType = parcelableType(type)
+    private fun isParcelable(prop: DataPropDef): Boolean =
+            typeUtils.isAssignable(prop.typeMirror, parcelableTypeMirror)
+
+    private fun CodeBlock.Builder.readValue(sourceParam: String, prop: DataPropDef): CodeBlock.Builder {
+        val rawType = parcelableType(prop)
+        val nonNullType = prop.typeKt.asNonNullable()
 
         fun CodeBlock.Builder.addSimpleRead(serializedType: String,
                                             dataType: String = serializedType) {
@@ -118,7 +128,7 @@ internal class ParcelableGenerator(
             else add("%L.read%L()", sourceParam, serializedType)
 
             if (serializedType != dataType) add(".to%L()", dataType)
-            add(" as %T", type)
+            add(" as %T", nonNullType)
         }
 
         when (rawType) {
@@ -137,7 +147,7 @@ internal class ParcelableGenerator(
             CHARSEQUENCE, KT_CHARSEQUENCE ->
                 add("%T.CHAR_SEQUENCE_CREATOR.createFromParcel(%L)", TextUtils::class, sourceParam)
 //            BUNDLE -> addExplicitRead("Bundle")
-            PARCELABLE -> addExplicitRead("Parcelable")
+            PARCELABLE -> add("%L.readParcelable(%T::class.java.classLoader)", sourceParam, nonNullType)
             else -> addExplicitRead("Value")
         }
         return this
@@ -201,18 +211,16 @@ internal class ParcelableGenerator(
         properties.forEach {
             val p = it.name
             val propType = it.typeKt
-            val nonNullableType = propType.asNonNullable()
-            val propDef = it.dataPropAnnotation
 
             if (propType.nullable) {
                 beginControlFlow("if ($p == null)")
                 addStatement("$paramDest.writeByte(1.toByte())")
                 nextControlFlow("else")
                 addStatement("$paramDest.writeByte(0.toByte())")
-                writeValue(paramDest, paramFlags, p, propDef, nonNullableType)
+                writeValue(paramDest, paramFlags, it)
                 endControlFlow()
             } else {
-                writeValue(paramDest, paramFlags, p, propDef, nonNullableType)
+                writeValue(paramDest, paramFlags, it)
             }
         }
         return this
@@ -220,41 +228,42 @@ internal class ParcelableGenerator(
 
     private fun CodeBlock.Builder.writeValue(paramDest: String,
                                              paramFlags: String,
-                                             prop: String,
-                                             propDef: AnnotationMirror?,
-                                             type: TypeName
+                                             prop: DataPropDef
     ): CodeBlock.Builder {
+        val name = prop.name
+        val attr = prop.dataPropAnnotation
+
         // prefer custom TypeAdapter if any
-        val customAdapterType = if (propDef != null) {
-            val annotatedAdapterType = (getAnnotationValue(propDef,
+        val customAdapterType = if (attr != null) {
+            val annotatedAdapterType = (getAnnotationValue(attr,
                     DataProp::parcelAdapter.name).value as TypeMirror).asTypeName()
             if (ParcelAdapter::class.asTypeName() != annotatedAdapterType)
                 annotatedAdapterType else null
         } else null
 
         if (customAdapterType != null) {
-            add("%L.toParcel(%L, %L)\n", customAdapterPropName(prop), prop, paramDest)
+            add("%L.toParcel(%L, %L)\n", customAdapterPropName(name), name, paramDest)
             return this
         }
 
-        val rawType = parcelableType(type)
+        val rawType = parcelableType(prop)
         fun addSimpleWrite(serializedType: String) {
-            add("%L.write%L(%L)\n", paramDest, serializedType, prop)
+            add("%L.write%L(%L)\n", paramDest, serializedType, name)
 
         }
         fun addExplicitWrite(serializedType: String) {
-            add("%L.write%L(%L.to%L())\n", paramDest, serializedType, prop, serializedType)
+            add("%L.write%L(%L.to%L())\n", paramDest, serializedType, name, serializedType)
         }
 
         when (rawType) {
             SHORT,
             CHAR -> addExplicitWrite("Int")
-            BOOLEAN -> add("%L.writeByte((if (%L) 1 else 0).toByte())\n", paramDest, prop)
+            BOOLEAN -> add("%L.writeByte((if (%L) 1 else 0).toByte())\n", paramDest, name)
             LIST, KT_LIST -> addSimpleWrite("List")
             SET, KT_SET -> addExplicitWrite("List")
             MAP, KT_MAP -> addSimpleWrite("Map")
-            PARCELABLE -> add("$paramDest.writeParcelable($prop, $paramFlags)\n")
-            else -> add("%L.write%T(%L)\n", paramDest, rawType, prop)
+            PARCELABLE -> add("$paramDest.writeParcelable($name, $paramFlags)\n")
+            else -> add("%L.write%T(%L)\n", paramDest, rawType, name)
         }
         return this
     }
