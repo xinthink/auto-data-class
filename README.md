@@ -96,12 +96,12 @@ See the [test cases][example-tests] for more details.
 Using the [kotlin-kapt] plugin
 
 ```gradle
-kapt 'com.fivemiles.auto:auto-data-class-processor:0.4.0'
-compile 'com.fivemiles.auto:auto-data-class-lib:0.4.0'
+kapt 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
+compile 'com.fivemiles.auto:auto-data-class-lib:0.5.0'
 
 # for testing, optional
-kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.4.0'
-kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.4.0'
+kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
+kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
 ```
 
 ## Limitations

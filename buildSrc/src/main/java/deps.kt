@@ -5,7 +5,7 @@ import org.gradle.kotlin.dsl.kotlin
  * Dependencies definition
  */
 object D {
-    val kt_version = "1.1.51"
+    val kt_version = "1.1.60"
     val kt_stdlib = "stdlib-jre7"
 
     object Auto {
