@@ -18,14 +18,15 @@ import org.junit.Test
  */
 @DataClass interface SimpleData : Parcelable {
     val firstName: String?
+
+    @get:DataProp(defaultValueLiteral = "null")
     val lastName: String?
-        @DataProp(defaultValueLiteral = "null") get
 
+    @get:DataProp(defaultValueLiteral = "\"Hello\"")
     val greeting: String
-        @DataProp(defaultValueLiteral = "\"Hello\"") get
 
+    @get:DataProp(defaultValueLiteral = "0L")
     var mutableProp: Long
-        @DataProp(defaultValueLiteral = "0L") get
 
     // derived property
     val fullName: String

@@ -13,10 +13,8 @@ import org.junit.Test
  * Data class definition with custom Gson [TypeAdapter]
  */
 @DataClass interface CustomAdapterData {
+    @get:DataProp(gsonTypeAdapter = NumeralBooleanAdapter::class)
     val numeralBool: Boolean
-        @DataProp(
-                gsonTypeAdapter = NumeralBooleanAdapter::class
-        ) get
     val jsonBool: Boolean
 }
 

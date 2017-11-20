@@ -14,14 +14,14 @@ import org.junit.Test
     val name: String
 
     /** Nullable transient prop without a default value */
+    @get:DataProp(isTransient = true)
     val ntp: String?
-        @DataProp(isTransient = true) get
 
     /** Non-nullable transient prop need a default value */
+    @get:DataProp(isTransient = true,
+            defaultValueLiteral = "\"non-nullable transient property\""
+    )
     var tp: String
-        @DataProp(isTransient = true,
-                defaultValueLiteral = "\"non-nullable transient property\""
-        ) get
 }
 
 class TransientGsonFieldTest {

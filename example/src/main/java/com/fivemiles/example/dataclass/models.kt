@@ -12,12 +12,11 @@ import com.google.gson.TypeAdapter
 import java.util.*
 
 @DataClass interface Address {
+    @get:DataProp(
+            jsonField = "street",
+            defaultValueLiteral = """"string literal""""
+    )
     val street: String?
-        @DataProp(
-                jsonField = "street",
-                defaultValueLiteral = """"string literal""""
-        )
-        get
 
     val city: String
 
@@ -40,8 +39,13 @@ import java.util.*
 }
 
 @DataClass interface Person {
+
     val name: String
-    val gender: Int @DataProp("gender", defaultValueLiteral = "0") get
+
+    @get:DataProp("gender", defaultValueLiteral = "0")
+    val gender: Int
+
     val dateOfBirth: Date
+
     val address: Address?
 }

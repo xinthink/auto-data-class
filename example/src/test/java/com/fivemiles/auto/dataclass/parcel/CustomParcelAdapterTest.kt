@@ -10,10 +10,8 @@ import java.util.*
  */
 @DataClass
 interface CustomParcelAdapterData : Parcelable {
+    @get:DataProp(parcelAdapter = DateParcelAdapter::class)
     val date: Date
-        @DataProp(
-                parcelAdapter = DateParcelAdapter::class
-        ) get
 }
 
 /**
