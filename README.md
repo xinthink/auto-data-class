@@ -63,12 +63,11 @@ Furthermore, you can customize the generated code with the `@DataProp` annotatio
 
 ```kotlin
 @DataClass interface Address {
+    @get:DataProp("street",
+            jsonFieldAlternate = arrayOf("street1", "street2"),
+            defaultValueLiteral = """"string literal""""
+    )
     val street: String?
-        @DataProp("street",
-                jsonFieldAlternate = arrayOf("street1", "street2"),
-                defaultValueLiteral = """"string literal""""
-        ) get
-
     ...
 }
 ```
@@ -96,12 +95,12 @@ See the [test cases][example-tests] for more details.
 Using the [kotlin-kapt] plugin
 
 ```gradle
-kapt 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
-compile 'com.fivemiles.auto:auto-data-class-lib:0.5.0'
+kapt 'com.fivemiles.auto:auto-data-class-processor:0.5.1'
+compile 'com.fivemiles.auto:auto-data-class-lib:0.5.1'
 
 # for testing, optional
-kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
-kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.5.0'
+kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.5.1'
+kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.5.1'
 ```
 
 ## Limitations
