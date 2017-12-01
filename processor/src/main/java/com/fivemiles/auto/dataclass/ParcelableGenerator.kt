@@ -51,7 +51,7 @@ internal class ParcelableGenerator(
         val concreteClassName = dataClassDef.className
         val creatorClsType = ParameterizedTypeName.get(Parcelable.Creator::class.asClassName(), concreteClassName)
         return addProperty(PropertySpec.builder(PARCELABLE_CREATOR_NAME, creatorClsType)
-                .addAnnotation(JvmStatic::class)
+                .addAnnotation(JvmField::class)
                 .initializer("%L", generateCreator(dataClassDef, creatorClsType, properties))
                 .build())
     }
@@ -100,19 +100,33 @@ internal class ParcelableGenerator(
                 .build()
     }
 
-    private fun parcelableType(prop: DataPropDef): TypeName =
-            if (isParcelable(prop)) PARCELABLE
+    /** @return (RawType, ValueType) */
+    private fun parcelableType(prop: DataPropDef): List<TypeName> =
+            if (isParcelable(prop)) listOf(PARCELABLE)
             else {
                 val nonNullType = prop.typeKt.asNonNullable()
-                (nonNullType as? ParameterizedTypeName)?.rawType ?: nonNullType
+                if (nonNullType is ParameterizedTypeName) {
+                    listOf(nonNullType.rawType, findValueType(nonNullType))
+                } else{
+                    listOf(nonNullType)
+                }
             }
+
+    /** find the most inner type argument */
+    tailrec private fun findValueType(type: ParameterizedTypeName): TypeName {
+        val lastArg = type.typeArguments.last()
+        return if (lastArg is ParameterizedTypeName) findValueType(lastArg)
+        else lastArg
+    }
 
     private fun isParcelable(prop: DataPropDef): Boolean =
             typeUtils.isAssignable(prop.typeMirror, parcelableTypeMirror)
 
     private fun CodeBlock.Builder.readValue(sourceParam: String, prop: DataPropDef): CodeBlock.Builder {
-        val rawType = parcelableType(prop)
+        val types = parcelableType(prop)
+        val rawType = types.first()
         val nonNullType = prop.typeKt.asNonNullable()
+        val valueType = types.last()
 
         fun CodeBlock.Builder.addSimpleRead(serializedType: String,
                                             dataType: String = serializedType) {
@@ -124,7 +138,7 @@ internal class ParcelableGenerator(
                                               dataType: String = serializedType,
                                               useClassLoader: Boolean = true) {
             if (useClassLoader)
-                add("%L.read%L(%T::class.java.classLoader)", sourceParam, serializedType, rawType)
+                add("%L.read%L(%T::class.java.classLoader)", sourceParam, serializedType, valueType)
             else add("%L.read%L()", sourceParam, serializedType)
 
             if (serializedType != dataType) add(".to%L()", dataType)
@@ -246,7 +260,7 @@ internal class ParcelableGenerator(
             return this
         }
 
-        val rawType = parcelableType(prop)
+        val rawType = parcelableType(prop).first()
         fun addSimpleWrite(serializedType: String) {
             add("%L.write%L(%L)\n", paramDest, serializedType, name)
 

@@ -22,6 +22,8 @@ interface AllParcelableTypes : Parcelable {
 //    val ai: Array<Int>  // `Array` is not supported
     val ss: Set<String>
     val rm: Map<String, Any>
+    val lmss: List<Map<String, String>>
+    val mrm: Map<String, Map<String, Any>>
 }
 
 /**
