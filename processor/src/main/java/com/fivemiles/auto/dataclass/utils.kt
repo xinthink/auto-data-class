@@ -30,6 +30,7 @@ private val javaTypeMappings: Map<TypeName, ClassName> = mapOf(
         Boolean::class.java.asTypeName() to BOOLEAN,
         java.lang.Boolean::class.java.asTypeName() to BOOLEAN,
         Char::class.java.asTypeName() to CHAR,
+        java.lang.Character::class.java.asTypeName() to CHAR,
         String::class.java.asTypeName() to String::class.asClassName(),
         Any::class.java.asTypeName() to ANY
 )

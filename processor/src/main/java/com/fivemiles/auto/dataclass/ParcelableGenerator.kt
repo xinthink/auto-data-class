@@ -83,18 +83,8 @@ internal class ParcelableGenerator(
                 .returns(dataClassDef.className)
                 .addCode("return %T(\n%L\n)", dataClassDef.className, CodeBlock.builder().apply {
                     properties.forEachIndexed { i, prop ->
-                        val propType = prop.typeKt
-                        if (propType.nullable) {
-                            add("if ($paramSource.readByte() == 0.toByte()) ")
-                                    .readValue(paramSource, prop)
-                                    .add(" else null")
-                        } else {
-                            readValue(paramSource, prop)
-                        }
-
-                        if (i < properties.size - 1) {
-                            add(",\n")
-                        }
+                        readValue(paramSource, prop)
+                        if (i < properties.size - 1) add(",\n")
                     }
                 }.build())
                 .build()
@@ -122,11 +112,17 @@ internal class ParcelableGenerator(
     private fun isParcelable(prop: DataPropDef): Boolean =
             typeUtils.isAssignable(prop.typeMirror, parcelableTypeMirror)
 
+    private fun shouldCheckNull(type: TypeName): Boolean = when (type) {
+        BYTE, INT, SHORT, CHAR, LONG, FLOAT, DOUBLE, BOOLEAN, STRING, KT_STRING -> true
+        else -> false
+    }
+
     private fun CodeBlock.Builder.readValue(sourceParam: String, prop: DataPropDef): CodeBlock.Builder {
         val types = parcelableType(prop)
         val rawType = types.first()
         val nonNullType = prop.typeKt.asNonNullable()
         val valueType = types.last()
+        val shouldCheckNull = prop.typeKt.nullable && shouldCheckNull(rawType)
 
         fun CodeBlock.Builder.addSimpleRead(serializedType: String,
                                             dataType: String = serializedType) {
@@ -142,7 +138,11 @@ internal class ParcelableGenerator(
             else add("%L.read%L()", sourceParam, serializedType)
 
             if (serializedType != dataType) add(".to%L()", dataType)
-            add(" as %T", nonNullType)
+            add(" as %T", if (shouldCheckNull) nonNullType else prop.typeKt)
+        }
+
+        if (shouldCheckNull) {
+            add("if ($sourceParam.readByte() == 0.toByte()) ")
         }
 
         when (rawType) {
@@ -163,6 +163,10 @@ internal class ParcelableGenerator(
 //            BUNDLE -> addExplicitRead("Bundle")
             PARCELABLE -> add("%L.readParcelable(%T::class.java.classLoader)", sourceParam, nonNullType)
             else -> addExplicitRead("Value")
+        }
+
+        if (shouldCheckNull) {
+            add(" else null")
         }
         return this
     }
@@ -223,19 +227,7 @@ internal class ParcelableGenerator(
             properties: Set<DataPropDef>
     ): CodeBlock.Builder {
         properties.forEach {
-            val p = it.name
-            val propType = it.typeKt
-
-            if (propType.nullable) {
-                beginControlFlow("if ($p == null)")
-                addStatement("$paramDest.writeByte(1.toByte())")
-                nextControlFlow("else")
-                addStatement("$paramDest.writeByte(0.toByte())")
-                writeValue(paramDest, paramFlags, it)
-                endControlFlow()
-            } else {
-                writeValue(paramDest, paramFlags, it)
-            }
+            writeValue(paramDest, paramFlags, it)
         }
         return this
     }
@@ -261,12 +253,24 @@ internal class ParcelableGenerator(
         }
 
         val rawType = parcelableType(prop).first()
+        val shouldCheckNull = prop.typeKt.nullable && shouldCheckNull(rawType)
+
         fun addSimpleWrite(serializedType: String) {
             add("%L.write%L(%L)\n", paramDest, serializedType, name)
 
         }
         fun addExplicitWrite(serializedType: String) {
-            add("%L.write%L(%L.to%L())\n", paramDest, serializedType, name, serializedType)
+            val isNullable = !shouldCheckNull && prop.typeKt.nullable
+            add("%L.write%L(%L%L.to%L())\n", paramDest, serializedType, name,
+                    if (isNullable) "?" else "",
+                    serializedType)
+        }
+
+        if (shouldCheckNull) {
+            beginControlFlow("if (${prop.name} == null)")
+            addStatement("$paramDest.writeByte(1.toByte())")
+            nextControlFlow("else")
+            addStatement("$paramDest.writeByte(0.toByte())")
         }
 
         when (rawType) {
@@ -279,6 +283,8 @@ internal class ParcelableGenerator(
             PARCELABLE -> add("$paramDest.writeParcelable($name, $paramFlags)\n")
             else -> add("%L.write%T(%L)\n", paramDest, rawType, name)
         }
+
+        if (shouldCheckNull) endControlFlow()
         return this
     }
 
