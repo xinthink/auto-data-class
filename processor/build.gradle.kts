@@ -6,7 +6,13 @@ dependencies {
     compile(project(":lib"))
     compile(D.Auto.common)
 //    compile(D.Auto.service)
-    compile(D.ktpoet)
+
+    // kotlinpoet + kotlin-reflect, fix version conflicts
+    compile(D.ktpoet) {
+        exclude(group = "org.jetbrains.kotlin")
+    }
+    compile(kotlin("reflect"))
+
     compile(D.gson)
     compileOnly(D.Android.stub)
 
