@@ -8,7 +8,7 @@ dependencies {
 //    compile(D.Auto.service)
     compile(D.ktpoet)
     compile(D.gson)
-    compileOnly(D.android)
+    compileOnly(D.Android.stub)
 
     testRuntime(kt)
     testCompile(D.junit)

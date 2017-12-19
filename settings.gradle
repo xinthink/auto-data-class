@@ -1,1 +1,1 @@
-include 'example', ':processor', ':lib'
+include ':example', ':processor', ':lib', ':android-example'

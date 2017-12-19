@@ -15,7 +15,7 @@ dependencies {
 
     compile(project(":lib"))
     compile(D.gson)
-    compile(D.android)
+    compile(D.Android.stub)
     kapt(project(":processor"))
     compileOnly(project(":processor"))
 

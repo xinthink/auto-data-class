@@ -3,37 +3,46 @@ import com.jfrog.bintray.gradle.BintrayExtension
 plugins {
     kotlin("jvm") version D.kt_version apply false
     kotlin("kapt") version D.kt_version apply false
+    kotlin("android") version D.kt_version apply false
     id("com.jfrog.bintray") version "1.7.3"
 }
 
 buildscript {
     repositories {
+        google()
         jcenter()
         mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:${D.Android.plugin_version}")
     }
 }
 
 group = "com.fivemiles.auto"
 version = "0.5.3"
-loadProperties("local.properties", ext)  // load properties from local.properties
+loadProperties("local.properties", ext)  // load local.properties into ext
 
 subprojects {
-    apply {
-        plugin("kotlin")
-    }
+    if (project.name != "android-example") {
+        apply {
+            plugin("kotlin")
+        }
 
-    withConvention(JavaPluginConvention::class) {
-        sourceCompatibility = JavaVersion.VERSION_1_7
-        targetCompatibility = JavaVersion.VERSION_1_7
+        withConvention(JavaPluginConvention::class) {
+            sourceCompatibility = JavaVersion.VERSION_1_7
+            targetCompatibility = JavaVersion.VERSION_1_7
+        }
     }
 
     repositories {
+        google()
         jcenter()
         mavenCentral()
     }
 }
 
-configure(subprojects.filterNot { it.name == "example" }) {
+configure(subprojects.filterNot { "example" in it.name }) {
     apply {
         plugin("maven-publish")
         plugin("com.jfrog.bintray")

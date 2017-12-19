@@ -1,7 +1,7 @@
 dependencies {
     compileOnly(kt)
 
-    compileOnly(D.android)
+    compileOnly(D.Android.stub)
     compileOnly(D.gson)
 
     testRuntime(kt)
