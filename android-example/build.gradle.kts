@@ -5,6 +5,11 @@ plugins {
     id("kotlin-android-extensions")
 }
 
+apply {
+    // enable experimental mode, a workaround to https://github.com/gradle/kotlin-dsl/issues/644
+    from("experimentalExtensions.gradle")
+}
+
 android {
     compileSdkVersion(D.Android.target_sdk)
     buildToolsVersion(D.Android.build_tools_version)

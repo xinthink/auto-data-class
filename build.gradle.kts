@@ -1,7 +1,7 @@
 import com.jfrog.bintray.gradle.BintrayExtension
 
 plugins {
-    kotlin("jvm") version D.kt_version apply false
+    kotlin("jvm") version D.kt_version
     kotlin("kapt") version D.kt_version apply false
     kotlin("android") version D.kt_version apply false
     id("com.jfrog.bintray") version "1.7.3"

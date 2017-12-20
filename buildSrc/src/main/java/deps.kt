@@ -5,7 +5,7 @@ import org.gradle.kotlin.dsl.kotlin
  * Dependencies definition
  */
 object D {
-    val kt_version = "1.2.10"
+    val kt_version = "1.2.30"
     val kt_stdlib = "stdlib-jre7"
     val kotlin = "org.jetbrains.kotlin:kotlin-$kt_stdlib:$kt_version"
 
