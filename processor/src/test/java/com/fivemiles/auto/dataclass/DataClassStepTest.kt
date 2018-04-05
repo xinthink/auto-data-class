@@ -1,12 +1,11 @@
 package com.fivemiles.auto.dataclass
 
+/* ktlint-disable no-wildcard-imports */
 import com.google.common.truth.Truth.assertAbout
 import com.google.testing.compile.JavaFileObjects
 import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
 import com.squareup.kotlinpoet.*
-import org.junit.Before
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
 import java.nio.charset.Charset
 import javax.tools.JavaFileObject
 import javax.tools.StandardLocation.SOURCE_OUTPUT
@@ -53,32 +52,32 @@ class DataClassStepTest {
             |""".trimMargin())
 
         val expected = FileSpec.builder("test", "DC_Test")
-                .addType(TypeSpec.classBuilder("DC_Test")
-                        .addModifiers(KModifier.INTERNAL, KModifier.DATA)
-                        .addProperty(PropertySpec.builder("street", nullableStringType)
-                                .addModifiers(KModifier.OVERRIDE)
-                                .initializer("street")
-                                .build())
-                        .addProperty(PropertySpec.builder("city", String::class)
-                                .addModifiers(KModifier.OVERRIDE)
-                                .initializer("city")
-                                .build())
-                        .primaryConstructor(FunSpec.constructorBuilder()
-                                .addParameter("street", nullableStringType)
-                                .addParameter("city", String::class)
-                                .build())
-                        .build())
-                .build()
-                .toJavaFileObject()
+            .addType(TypeSpec.classBuilder("DC_Test")
+                .addModifiers(KModifier.INTERNAL, KModifier.DATA)
+                .addProperty(PropertySpec.builder("street", nullableStringType)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .initializer("street")
+                    .build())
+                .addProperty(PropertySpec.builder("city", String::class)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .initializer("city")
+                    .build())
+                .primaryConstructor(FunSpec.constructorBuilder()
+                    .addParameter("street", nullableStringType)
+                    .addParameter("city", String::class)
+                    .build())
+                .build())
+            .build()
+            .toJavaFileObject()
 
         assertAbout(javaSources())
-                .that(listOf(source))
-                .withCompilerOptions()
-                .processedWith(DataClassAnnotationProcessor())
-                .compilesWithoutError()
-                .and()
+            .that(listOf(source))
+            .withCompilerOptions()
+            .processedWith(DataClassAnnotationProcessor())
+            .compilesWithoutError()
+            .and()
 //                .generatesSources(expected)
-                .generatesFileNamed(SOURCE_OUTPUT, "test", "DC_Test.kt")
-                .withStringContents(Charset.forName("UTF-8"), "hello")
+            .generatesFileNamed(SOURCE_OUTPUT, "test", "DC_Test.kt")
+            .withStringContents(Charset.forName("UTF-8"), "hello")
     }
 }

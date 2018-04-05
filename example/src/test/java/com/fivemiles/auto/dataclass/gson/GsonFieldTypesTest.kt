@@ -33,8 +33,8 @@ class GsonFieldTypesTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
-                .create()
+            .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
+            .create()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -79,17 +79,17 @@ class GsonFieldTypesTest {
         assertEquals(setOf("12", "Zero"), data.ss)
         assertEquals(mapOf("Two" to 2, "Ten" to 10), data.msi)
         assertEquals(listOf(
-                mapOf("11" to 11,
-                        "12" to 12),
-                mapOf("21" to 21,
-                        "22" to 22,
-                        "23" to 23)
+            mapOf("11" to 11,
+                "12" to 12),
+            mapOf("21" to 21,
+                "22" to 22,
+                "23" to 23)
         ), data.lmsi)
 
         // raw map type
         val rm: Map<String, Any> = data.rm
         assertEquals(2, rm.size)
-        assertEquals(1.0, rm["a"])  // Gson parse numbers as Double by default
+        assertEquals(1.0, rm["a"]) // Gson parse numbers as Double by default
 
         val rmo = rm["o"] as? Map<String, Any>
         assertNotNull(rmo); if (rmo == null) return

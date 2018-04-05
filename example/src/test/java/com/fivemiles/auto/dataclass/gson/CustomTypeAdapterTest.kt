@@ -1,5 +1,6 @@
 package com.fivemiles.auto.dataclass.gson
 
+/* ktlint-disable no-wildcard-imports */
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
 import com.google.gson.Gson
@@ -26,8 +27,8 @@ class CustomTypeAdapterTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
-                .create()
+            .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
+            .create()
     }
 
     /**
@@ -61,7 +62,7 @@ class CustomTypeAdapterTest {
         json = """{"numeralBool": "TrUe", "jsonBool": false}"""
         data = gson.fromJson(json, CustomAdapterData::class.java)
         assertTrue(data.numeralBool)
-        
+
         json = """{"numeralBool": "false", "jsonBool": false}"""
         data = gson.fromJson(json, CustomAdapterData::class.java)
         assertFalse(data.numeralBool)

@@ -12,9 +12,7 @@ import org.junit.Test
  * Data class definition with properties has alternative json field name
  */
 @DataClass interface AdaptiveImage {
-    @get:DataProp("source",
-            jsonFieldAlternate = arrayOf("link", "url")
-    )
+    @get:DataProp("source", jsonFieldAlternate = ["link", "url"])
     val src: String
 }
 
@@ -26,8 +24,8 @@ class FieldAlternativesTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
-                .create()
+            .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
+            .create()
     }
 
     @Test fun jsonParsingWithAlternativeFields() {

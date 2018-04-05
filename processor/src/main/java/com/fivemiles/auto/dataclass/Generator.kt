@@ -28,6 +28,8 @@ internal interface FacetGenerator {
      * @param dataClassDef definition context about the data class
      * @param dataClassSpecBuilder [builder instance][TypeSpec.Builder] to build the data class
      */
-    fun generate(dataClassDef: DataClassDef,
-                 dataClassSpecBuilder: TypeSpec.Builder)
+    fun generate(
+        dataClassDef: DataClassDef,
+        dataClassSpecBuilder: TypeSpec.Builder
+    )
 }

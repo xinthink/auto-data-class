@@ -36,7 +36,7 @@ class DataClassAnnotationProcessor : BasicAnnotationProcessor(), SourceLocationM
         GsonTypeAdapterFactoryStep(processingEnv, this, dataClassStep.processedDataClasses)
     }
 
-    private var sourceLocation: File? = null  // cached source location
+    private var sourceLocation: File? = null // cached source location
 
     /**
      * [javax.tools.JavaFileObject.openWriter] always create `.java` files, in order to get the source location,
@@ -67,8 +67,8 @@ internal interface SourceLocationManager {
  * Base class of [BasicAnnotationProcessor.ProcessingStep], handles a single annotation by default.
  */
 internal abstract class AbstractProcessingStep(
-        processingEnv: ProcessingEnvironment,
-        private val sourceLocationManager: SourceLocationManager
+    processingEnv: ProcessingEnvironment,
+    private val sourceLocationManager: SourceLocationManager
 ) : BasicAnnotationProcessor.ProcessingStep {
     protected val errorReporter = ErrorReporter(processingEnv)
 
@@ -99,7 +99,6 @@ internal abstract class AbstractProcessingStep(
                     // Instead, report a compiler error with the stack trace.
                     val trace = Throwables.getStackTraceAsString(e)
                     errorReporter.reportError("$annotationName processor threw an exception: $trace", it)
-
                 }
             }
         }
@@ -152,7 +151,7 @@ internal abstract class AbstractProcessingStep(
                     .addType(classSpec)
                     .build()
                     .writeTo(dir)
-        } catch(e: IOException) {
+        } catch (e: IOException) {
             // This should really be an error, but we make it a warning in the hope of resisting Eclipse
             // bug https://bugs.eclipse.org/bugs/show_bug.cgi?id=367599. If that bug manifests, we may get
             // invoked more than once for the same file, so ignoring the ability to overwrite it is the

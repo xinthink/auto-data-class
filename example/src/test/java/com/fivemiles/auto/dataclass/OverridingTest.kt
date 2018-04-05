@@ -30,7 +30,6 @@ private constructor(p: PersonInternal) : PersonInternal by p {
     }
 }
 
-
 /**
  * Example for overriding built-in methods
  */

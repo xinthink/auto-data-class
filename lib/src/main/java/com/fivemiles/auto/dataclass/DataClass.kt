@@ -9,6 +9,6 @@ import com.google.gson.TypeAdapter
 @Target(AnnotationTarget.CLASS)
 @MustBeDocumented
 annotation class DataClass(
-        /** Whether a Gson [TypeAdapter] should be generated for this Data Class, the default is true */
-        val generateGsonTypeAdapter: Boolean = true
+    /** Whether a Gson [TypeAdapter] should be generated for this Data Class, the default is true */
+    val generateGsonTypeAdapter: Boolean = true
 )

@@ -12,10 +12,7 @@ interface TransientParcelData : Parcelable {
     @get:DataProp(isTransient = true)
     val ntp: String?
 
-
     /** Non-nullable transient prop need a default value */
-    @get:DataProp(isTransient = true,
-            defaultValueLiteral = "\"non-nullable transient property\""
-    )
+    @get:DataProp(isTransient = true, defaultValueLiteral = "\"non-nullable transient property\"")
     var tp: String
 }

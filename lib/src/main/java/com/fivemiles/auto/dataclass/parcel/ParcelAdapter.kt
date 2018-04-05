@@ -2,7 +2,6 @@ package com.fivemiles.auto.dataclass.parcel
 
 import android.os.Parcel
 
-
 /**
  * Custom logic converting objects to and from Parcels.
  */
@@ -21,5 +20,4 @@ interface ParcelAdapter<T> {
      * @param dest The [Parcel] in which to write `value`.
      */
     fun toParcel(value: T?, dest: Parcel)
-
 }

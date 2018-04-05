@@ -9,13 +9,10 @@ import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
-import java.util.*
+import java.util.Date
 
 @DataClass interface Address {
-    @get:DataProp(
-            jsonField = "street",
-            defaultValueLiteral = """"string literal""""
-    )
+    @get:DataProp(jsonField = "street", defaultValueLiteral = """"string literal"""")
     val street: String?
 
     val city: String
@@ -32,9 +29,9 @@ import java.util.*
 
         /** Gson TypeAdapter factory method */
         fun typeAdapter(gson: Gson): TypeAdapter<Address> = DC_Address.GsonTypeAdapter(gson)
-                .apply {
-                    defaultCity = "Beijing"
-                }
+            .apply {
+                defaultCity = "Beijing"
+            }
     }
 }
 

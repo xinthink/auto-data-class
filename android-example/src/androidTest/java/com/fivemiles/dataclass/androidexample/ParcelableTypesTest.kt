@@ -1,5 +1,6 @@
 package com.fivemiles.dataclass.androidexample
 
+/* ktlint-disable no-wildcard-imports */
 import android.os.Parcel
 import android.os.Parcelable
 import android.support.test.runner.AndroidJUnit4
@@ -51,8 +52,8 @@ class ParcelableTypesTest {
     @Test fun testUnmarshalling() {
         val parcel = Parcel.obtain()
         val person = DC_Person("Jane", 21,
-                DC_Address("1st North Rd.", "NY"),
-                DC_Address("2nd North Rd.", "NYC")
+            DC_Address("1st North Rd.", "NY"),
+            DC_Address("2nd North Rd.", "NYC")
         )
 
         person.writeToParcel(parcel, 0)
@@ -94,12 +95,12 @@ class ParcelableTypesTest {
     @Test fun testUnmarshallingWithParcelableList() {
         val parcel = Parcel.obtain()
         val person = DC_Person(la = listOf(
-                DC_Address("st1", "c1"),
-                DC_Address("st2", "c2")
+            DC_Address("st1", "c1"),
+            DC_Address("st2", "c2")
         ), nla = listOf(
-                DC_Address("st3", "c3"),
-                DC_Address("st4", "c4"),
-                DC_Address("st5", "c5")
+            DC_Address("st3", "c3"),
+            DC_Address("st4", "c4"),
+            DC_Address("st5", "c5")
         ))
 
         person.writeToParcel(parcel, 0)

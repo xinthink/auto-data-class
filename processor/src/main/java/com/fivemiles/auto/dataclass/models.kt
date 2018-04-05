@@ -1,17 +1,13 @@
 package com.fivemiles.auto.dataclass
 
-import com.google.auto.common.AnnotationMirrors
-import com.google.auto.common.MoreElements
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.asClassName
+/* ktlint-disable no-wildcard-imports */
+import com.google.auto.common.*
+import com.squareup.kotlinpoet.*
 import java.beans.Introspector
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
-import javax.lang.model.type.TypeKind
-import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.*
 import javax.lang.model.util.Types
-import javax.swing.plaf.basic.BasicPopupMenuSeparatorUI
 
 private const val CLASS_NAME_PREFIX = "DC"
 private const val CLASS_NAME_SEPARATOR = "_"
@@ -33,15 +29,16 @@ private enum class DefaultMethod {
     PARCELABLE,
 }
 
-
 /**
  * Represents a data class which should be generated.
  *
  * @property element the backing [TypeElement] of the data class definition
  */
-internal data class DataClassDef(private val processingEnv: ProcessingEnvironment,
-                                 val errorReporter: ErrorReporter,
-                                 val element: TypeElement) {
+internal data class DataClassDef(
+    private val processingEnv: ProcessingEnvironment,
+    val errorReporter: ErrorReporter,
+    val element: TypeElement
+) {
 
     val typeUtils: Types by lazy { processingEnv.typeUtils }
     val elementUtils = processingEnv.elementUtils
@@ -64,7 +61,7 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
     val isGenerateGsonTypeAdapter: Boolean by lazy {
         dataClassAnnotation?.let {
             AnnotationMirrors.getAnnotationValue(it,
-                    DataClass::generateGsonTypeAdapter.name).value as Boolean
+                DataClass::generateGsonTypeAdapter.name).value as Boolean
         } ?: false
     }
 
@@ -100,39 +97,35 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
     }
 
     private fun TypeElement.findRootTypeElement(): TypeElement =
-            if (isNestedType) (enclosingElement as TypeElement).findRootTypeElement() else this
+        if (isNestedType) (enclosingElement as TypeElement).findRootTypeElement() else this
 
-    private fun propertyMethodsIn(element: TypeElement, methods: Set<ExecutableElement>?): Set<ExecutableElement> =
-            when (methods) {
-                null -> setOf()
-                else -> methods.filter {
-                    it.parameters.isEmpty() &&
-                            (element.isParcelizedClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
-                            it.returnType?.kind != TypeKind.VOID &&
-                            !hasDefaultImplement(element, it, typeUtils) &&
-                            objectMethodToOverride(it) === com.fivemiles.auto.dataclass.DefaultMethod.NONE
-                }.toSet()
-            }
+    private fun propertyMethodsIn(
+        element: TypeElement,
+        methods: Set<ExecutableElement>?
+    ): Set<ExecutableElement> = methods?.filter {
+        it.parameters.isEmpty() &&
+            (element.isParcelizedClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
+            it.returnType?.kind != TypeKind.VOID &&
+            !hasDefaultImplement(element, it, typeUtils) &&
+            objectMethodToOverride(it) === com.fivemiles.auto.dataclass.DefaultMethod.NONE
+    }?.toSet() ?: setOf()
 
     private fun objectMethodToOverride(method: ExecutableElement): DefaultMethod {
         val name = method.simpleName.toString()
-        when (method.parameters.size) {
-            0 -> {
-                when {
-                    name == "toString" -> return DefaultMethod.TO_STRING
-                    name == "hashCode" -> return DefaultMethod.HASH_CODE
-                    name == "clone" -> return DefaultMethod.CLONE
-                    name == "getClass" -> return DefaultMethod.CLASS
-                    name.matches(ktComponentFunRegex) -> return DefaultMethod.COMPONENT
-                    name == "describeContents" -> return DefaultMethod.PARCELABLE
-                }
-            }
-            1 -> if (name == "equals" &&
-                    method.parameters[0].asType().toString() == "java.lang.Object") {
-                return DefaultMethod.EQUALS
-            }
+        val noParams = method.parameters.isEmpty()
+        val isEqualsMethod = name == "equals" &&
+            method.parameters.size == 1 &&
+            "${method.parameters[0].asType()}" == "java.lang.Object"
+        return when {
+            noParams && name == "toString" -> DefaultMethod.TO_STRING
+            noParams && name == "hashCode" -> DefaultMethod.HASH_CODE
+            noParams && name == "clone" -> DefaultMethod.CLONE
+            noParams && name == "getClass" -> DefaultMethod.CLASS
+            noParams && name.matches(ktComponentFunRegex) -> DefaultMethod.COMPONENT
+            noParams && name == "describeContents" -> DefaultMethod.PARCELABLE
+            isEqualsMethod -> DefaultMethod.EQUALS
+            else -> DefaultMethod.NONE
         }
-        return DefaultMethod.NONE
     }
 }
 
@@ -143,9 +136,11 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
  * @property name name of the property
  * @property element the backing [ExecutableElement] (getter method) of the property
  */
-internal data class DataPropDef(val dataClassDef: DataClassDef,
-                                val name: String,
-                                val element: ExecutableElement) {
+internal data class DataPropDef(
+    val dataClassDef: DataClassDef,
+    val name: String,
+    val element: ExecutableElement
+) {
 
     private val typeUtils: Types by lazy { dataClassDef.typeUtils }
 
@@ -157,10 +152,10 @@ internal data class DataPropDef(val dataClassDef: DataClassDef,
     val isMutable: Boolean by lazy {
         enclosingElement.enclosedElements.any {
             it is ExecutableElement &&
-                    Modifier.ABSTRACT in it.modifiers &&
-                    it.parameters.size == 1 &&
-                    typeUtils.isSameType(it.parameters[0].asType(), element.returnType) &&
-                    it.simpleName.matches("""^(set)?$name$""".toRegex(RegexOption.IGNORE_CASE))
+                Modifier.ABSTRACT in it.modifiers &&
+                it.parameters.size == 1 &&
+                typeUtils.isSameType(it.parameters[0].asType(), element.returnType) &&
+                it.simpleName.matches("""^(set)?$name$""".toRegex(RegexOption.IGNORE_CASE))
         }
     }
 
@@ -174,35 +169,35 @@ internal data class DataPropDef(val dataClassDef: DataClassDef,
     val isTransient: Boolean by lazy {
         dataPropAnnotation?.let {
             AnnotationMirrors.getAnnotationValue(it,
-                    DataProp::isTransient.name).value as Boolean
+                DataProp::isTransient.name).value as Boolean
         } ?: false
     }
 
     val defaultValueLiteral: String by lazy {
         dataPropAnnotation?.let {
             AnnotationMirrors.getAnnotationValue(it,
-                    DataProp::defaultValueLiteral.name).value as String
+                DataProp::defaultValueLiteral.name).value as String
         } ?: ""
     }
 }
 
 /** Whether the given method has a default implement */
-internal fun hasDefaultImplement(element: TypeElement,
-                                 method: ExecutableElement,
-                                 typeUtils: Types
+internal fun hasDefaultImplement(
+    element: TypeElement,
+    method: ExecutableElement,
+    typeUtils: Types
 ): Boolean {
     val implCls = findDefaultImplement(element) ?: return false
     return implCls.enclosedElements.any {
         it is ExecutableElement &&
-                Modifier.ABSTRACT !in it.modifiers &&
-                it.simpleName == method.simpleName &&
-                typeUtils.isSameType(it.returnType, method.returnType)
+            Modifier.ABSTRACT !in it.modifiers &&
+            it.simpleName == method.simpleName &&
+            typeUtils.isSameType(it.returnType, method.returnType)
     }
 }
 
-
 internal fun annotation(element: Element, annotationClass: Class<out Annotation>): AnnotationMirror? =
-        MoreElements.getAnnotationMirror(element, annotationClass).orNull()
+    MoreElements.getAnnotationMirror(element, annotationClass).orNull()
 
 /** Get the generated class name for the given element */
 internal fun generatedClassName(element: TypeElement, suffix: String = ""): String =
@@ -223,9 +218,9 @@ private fun generatedClassName(
     .joinToString(separator = separator)
 
 private fun findDefaultImplement(element: TypeElement): TypeElement? =
-        element.enclosedElements.find {
-            it is TypeElement && "${it.simpleName}" == "DefaultImpls"
-        } as TypeElement?
+    element.enclosedElements.find {
+        it is TypeElement && "${it.simpleName}" == "DefaultImpls"
+    } as TypeElement?
 
 /** whether all the getters start with `get`, `is` */
 private fun gettersAllPrefixed(methods: Set<ExecutableElement>) = prefixedGettersIn(methods).size == methods.size
@@ -235,7 +230,7 @@ private fun prefixedGettersIn(methods: Iterable<ExecutableElement>): Set<Executa
         val name = "${it.simpleName}"
         // `getfoo` or `isfoo` (without a capital) is a getter currently
         name.matches("""^get.+""".toRegex()) ||
-                (name.matches("""^is.+""".toRegex()) && it.returnType.kind == TypeKind.BOOLEAN)
+            (name.matches("""^is.+""".toRegex()) && it.returnType.kind == TypeKind.BOOLEAN)
     }.toSet()
 }
 

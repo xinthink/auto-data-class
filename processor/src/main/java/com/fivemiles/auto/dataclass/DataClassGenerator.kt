@@ -14,11 +14,11 @@ import javax.lang.model.element.TypeElement
 internal class DataClassGenerator(
     private val processingEnv: ProcessingEnvironment,
     private val errorReporter: ErrorReporter
-): Generator {
+) : Generator {
 
     private val facetGenerators: List<FacetGenerator> = listOf(
-        GsonTypeAdapterGenerator(processingEnv, errorReporter),
-        ParcelableGenerator(processingEnv, errorReporter)
+        GsonTypeAdapterGenerator(),
+        ParcelableGenerator(processingEnv)
     )
 
     /**

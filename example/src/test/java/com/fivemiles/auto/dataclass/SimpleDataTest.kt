@@ -44,12 +44,11 @@ import org.junit.Test
     abstract var age: Int
 
     companion object {
-        fun create(name: String = "Jon",
-                   age: Int = 18
-        ): SimpleAbsData = DC_SimpleAbsData(name, age)
+        fun create(name: String = "Jon", age: Int = 18): SimpleAbsData =
+            DC_SimpleAbsData(name, age)
 
         fun typeAdapter(gson: Gson): TypeAdapter<SimpleAbsData> =
-                DC_SimpleAbsData.GsonTypeAdapter(gson)
+            DC_SimpleAbsData.GsonTypeAdapter(gson)
     }
 }
 

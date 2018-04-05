@@ -1,7 +1,7 @@
 package com.fivemiles.auto.dataclass.parcel
 
 import android.os.Parcel
-import java.util.*
+import java.util.Date
 
 /**
  * A [ParcelAdapter] for converting [Date]s from/to [Parcel]s.
@@ -15,5 +15,4 @@ class DateParcelAdapter : ParcelAdapter<Date> {
             dest.writeLong(value.time)
         }
     }
-
 }

@@ -14,7 +14,7 @@ internal class ParcelizedClassGenerator(
     private val processingEnv: ProcessingEnvironment,
     private val errorReporter: ErrorReporter
 ) : Generator {
-    private val facetGenerator = GsonTypeAdapterGenerator(processingEnv, errorReporter)
+    private val facetGenerator = GsonTypeAdapterGenerator()
 
     override fun generate(element: TypeElement): Pair<DataClassDef, TypeSpec?> {
         val dataClassDef = DataClassDef(processingEnv, errorReporter, element)

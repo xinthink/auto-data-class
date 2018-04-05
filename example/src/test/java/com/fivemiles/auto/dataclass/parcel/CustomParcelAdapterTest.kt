@@ -3,7 +3,7 @@ package com.fivemiles.auto.dataclass.parcel
 import android.os.Parcelable
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
-import java.util.*
+import java.util.Date
 
 /**
  * Data class definition with custom Gson [ParcelAdapter]

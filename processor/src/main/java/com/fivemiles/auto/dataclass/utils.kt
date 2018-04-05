@@ -4,9 +4,7 @@ package com.fivemiles.auto.dataclass
 import com.google.auto.common.MoreElements.isAnnotationPresent
 import com.squareup.kotlinpoet.*
 import org.jetbrains.annotations.Nullable
-import javax.lang.model.element.Element
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.Modifier
+import javax.lang.model.element.*
 
 /**
  * Kotlin equivalents of some Java types.

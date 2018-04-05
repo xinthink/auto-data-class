@@ -9,7 +9,6 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
-
 /**
  * Google compile-testing doesn't work for kotlin.
  * Tests annotation processor by writing testing sources.
@@ -23,11 +22,11 @@ import org.junit.Test
 
     companion object {
         fun typeAdapter(gson: Gson): TypeAdapter<GsonData> =
-                DC_GsonData.GsonTypeAdapter(gson)
-                        .apply {
-                            defaultFirstName = "World"
-                            defaultGreeting = "Hello"
-                        }
+            DC_GsonData.GsonTypeAdapter(gson)
+                .apply {
+                    defaultFirstName = "World"
+                    defaultGreeting = "Hello"
+                }
     }
 }
 
@@ -39,8 +38,8 @@ class BasicGsonTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
-                .create()
+            .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
+            .create()
     }
 
     @Test fun jsonParsing() {

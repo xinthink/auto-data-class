@@ -1,6 +1,5 @@
 package com.fivemiles.auto.dataclass.gson
 
-
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
 import com.google.gson.Gson
@@ -18,9 +17,7 @@ import org.junit.Test
     val ntp: String?
 
     /** Non-nullable transient prop need a default value */
-    @get:DataProp(isTransient = true,
-            defaultValueLiteral = "\"non-nullable transient property\""
-    )
+    @get:DataProp(isTransient = true, defaultValueLiteral = "\"non-nullable transient property\"")
     var tp: String
 }
 
@@ -29,8 +26,8 @@ class TransientGsonFieldTest {
 
     @Before fun setup() {
         gson = GsonBuilder()
-                .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
-                .create()
+            .registerTypeAdapterFactory(TestTypeAdapterFactory.create())
+            .create()
     }
 
     @Test fun ignoreTransientFieldsWhenParsingJson() {
