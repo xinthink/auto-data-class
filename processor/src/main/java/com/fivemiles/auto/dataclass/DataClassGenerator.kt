@@ -1,10 +1,10 @@
 package com.fivemiles.auto.dataclass
 
+/* ktlint-disable no-wildcard-imports */
 import com.squareup.kotlinpoet.*
 import javax.annotation.Generated
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.TypeElement
-
 
 /**
  * Generates data class given a TypeElement
@@ -12,12 +12,13 @@ import javax.lang.model.element.TypeElement
  * Created by ywu on 2017/7/10.
  */
 internal class DataClassGenerator(
-        private val processingEnv: ProcessingEnvironment,
-        private val errorReporter: ErrorReporter) {
+    private val processingEnv: ProcessingEnvironment,
+    private val errorReporter: ErrorReporter
+): Generator {
 
     private val facetGenerators: List<FacetGenerator> = listOf(
-            GsonTypeAdapterGenerator(processingEnv, errorReporter),
-            ParcelableGenerator(processingEnv, errorReporter)
+        GsonTypeAdapterGenerator(processingEnv, errorReporter),
+        ParcelableGenerator(processingEnv, errorReporter)
     )
 
     /**
@@ -26,23 +27,23 @@ internal class DataClassGenerator(
      * @param element the interface element which defines the data class
      */
     @Suppress("UNCHECKED_CAST")
-    fun generate(element: TypeElement): Pair<DataClassDef, TypeSpec> {
+    override fun generate(element: TypeElement): Pair<DataClassDef, TypeSpec?> {
         val dataClassDef = DataClassDef(processingEnv, errorReporter, element)
 
         val builder = TypeSpec.classBuilder(dataClassDef.className)
-                .apply {
-                    if (element.kind.isInterface) addSuperinterface(element.asClassName())
-                    else superclass(element.asClassName())
-                }
-                .addModifiers(KModifier.DATA, KModifier.INTERNAL)
-                .addAnnotation(AnnotationSpec.builder(Generated::class)
-                        .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
-                        .build())
-                .addAnnotation(AnnotationSpec.builder(Suppress::class)
+            .apply {
+                if (element.kind.isInterface) addSuperinterface(element.asClassName())
+                else superclass(element.asClassName())
+            }
+            .addModifiers(KModifier.DATA, KModifier.INTERNAL)
+            .addAnnotation(AnnotationSpec.builder(Generated::class)
+                .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
+                .build())
+            .addAnnotation(AnnotationSpec.builder(Suppress::class)
 //                        .addMember("names", "*arrayOf(%S)", "UNCHECKED_CAST")
-                        .addMember("value", "\"UNCHECKED_CAST\"")
-                        .build())
-                .generateProperties(dataClassDef.properties)
+                .addMember("value", "\"UNCHECKED_CAST\"")
+                .build())
+            .generateProperties(dataClassDef.properties)
 
         // add extra facets to the data class
         facetGenerators.forEach {
@@ -67,30 +68,30 @@ internal class DataClassGenerator(
                     ctorParamBuilder.defaultValue("%L", defaultValue)
                 }
                 constructorBuilder.addParameter(ctorParamBuilder.build())
-            }                            
+            }
 
             // property declaration
             addProperty(PropertySpec.builder(it.name, it.typeKt)
-                    .mutable(it.isMutable)
-                    .addModifiers(KModifier.OVERRIDE)
-                    .apply {
-                        if (!isTransient) {
-                            initializer(it.name)
-                            return@apply
-                        }
-
-                        // transient property should has a default value if non-nullable
-                        when {
-                            defaultValue.isNotBlank() -> initializer(defaultValue)
-                            it.typeKt.nullable -> initializer("null")
-                            else -> errorReporter.reportError(
-                                    "default value should be provided for a non-nullable transient property",
-                                    it.element)
-                        }
-
-                        addAnnotation(Transient::class)
+                .mutable(it.isMutable)
+                .addModifiers(KModifier.OVERRIDE)
+                .apply {
+                    if (!isTransient) {
+                        initializer(it.name)
+                        return@apply
                     }
-                    .build())
+
+                    // transient property should has a default value if non-nullable
+                    when {
+                        defaultValue.isNotBlank() -> initializer(defaultValue)
+                        it.typeKt.nullable -> initializer("null")
+                        else -> errorReporter.reportError(
+                            "default value should be provided for a non-nullable transient property",
+                            it.element)
+                    }
+
+                    addAnnotation(Transient::class)
+                }
+                .build())
         }
 
         return primaryConstructor(constructorBuilder.build())

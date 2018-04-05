@@ -1,6 +1,8 @@
 package com.fivemiles.auto.dataclass
 
+/* ktlint-disable no-wildcard-imports */
 import com.fivemiles.auto.dataclass.GsonTypeAdapterGenerator.Companion.GSON_ADAPTER_CLASS_NAME
+import com.fivemiles.auto.dataclass.GsonTypeAdapterGenerator.Companion.generatedStandAloneGsonAdapterClassName
 import com.fivemiles.auto.dataclass.gson.GsonTypeAdapterFactory
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
@@ -90,14 +92,20 @@ internal class GsonTypeAdapterFactoryStep(processingEnv: ProcessingEnvironment,
         allDataClasses.forEach {
             if (!it.isGenerateGsonTypeAdapter) return@forEach
 
-            val dcIntf = it.element.asClassName()  // interface defines the data class
-            val dcImpl = it.className  // class implements the data class
+            val dcIntf = it.element.asClassName() // interface defines the data class
+            val dcImpl = it.className // class implements the data class
             val factoryMethod = findFactoryMethod(it.element)?.simpleName
-            addStatement("%T::class.java.isAssignableFrom(%L) -> %T.%L(%L)",
-                    dcIntf, rawTypeValName,
-                    if (factoryMethod != null) dcIntf else dcImpl,
-                    factoryMethod ?: GSON_ADAPTER_CLASS_NAME,
-                    gsonParamName)
+            val isStandAlone = factoryMethod == null && it.element.isParcelizedClass
+
+            if (isStandAlone) addStatement("%T::class.java.isAssignableFrom(%L) -> %T(%L)",
+                dcIntf, rawTypeValName,
+                dcImpl.peerClass(generatedStandAloneGsonAdapterClassName(it.element)),
+                gsonParamName)
+            else addStatement("%T::class.java.isAssignableFrom(%L) -> %T.%L(%L)",
+                dcIntf, rawTypeValName,
+                if (factoryMethod != null) dcIntf else dcImpl,
+                factoryMethod ?: GSON_ADAPTER_CLASS_NAME,
+                gsonParamName)
         }
         addStatement("else -> null")
 

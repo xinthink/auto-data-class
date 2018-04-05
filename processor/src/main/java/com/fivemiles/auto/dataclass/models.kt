@@ -11,6 +11,7 @@ import javax.lang.model.element.*
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
+import javax.swing.plaf.basic.BasicPopupMenuSeparatorUI
 
 private const val CLASS_NAME_PREFIX = "DC"
 private const val CLASS_NAME_SEPARATOR = "_"
@@ -49,8 +50,13 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
      * [ClassName] of the data class to be generated
      */
     val className: ClassName by lazy {
-        val simpleName = generatedClassName(element, DATA_CLASS_NAME_SUFFIX)
-        element.findRootTypeElement().asClassName().peerClass(simpleName)
+        if (element.isInterfaceOrAbstractClass) {
+            val simpleName = generatedClassName(element, DATA_CLASS_NAME_SUFFIX)
+            element.findRootTypeElement().asClassName().peerClass(simpleName)
+        } else {
+            // it's a concrete class, there's no subclass to be generated
+            element.asClassName()
+        }
     }
 
     val dataClassAnnotation: AnnotationMirror? by lazy { annotation(element, DataClass::class.java) }
@@ -101,7 +107,7 @@ internal data class DataClassDef(private val processingEnv: ProcessingEnvironmen
                 null -> setOf()
                 else -> methods.filter {
                     it.parameters.isEmpty() &&
-                            Modifier.ABSTRACT in it.modifiers &&
+                            (element.isParcelizedClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
                             it.returnType?.kind != TypeKind.VOID &&
                             !hasDefaultImplement(element, it, typeUtils) &&
                             objectMethodToOverride(it) === com.fivemiles.auto.dataclass.DefaultMethod.NONE
@@ -199,16 +205,22 @@ internal fun annotation(element: Element, annotationClass: Class<out Annotation>
         MoreElements.getAnnotationMirror(element, annotationClass).orNull()
 
 /** Get the generated class name for the given element */
-internal fun generatedClassName(element: TypeElement, suffix: String = ""): String
-        = generatedClassName(generatedClassSimpleName(element), suffix)
+internal fun generatedClassName(element: TypeElement, suffix: String = ""): String =
+    generatedClassName(generatedClassSimpleName(element), suffix = suffix)
 
 private fun generatedClassSimpleName(element: Element): String =
-        if (element.isNestedType)
-            "${generatedClassSimpleName(element.enclosingElement)}_${element.simpleName}"
-        else element.simpleName.toString()
+    if (element.isNestedType)
+        "${generatedClassSimpleName(element.enclosingElement)}_${element.simpleName}"
+    else element.simpleName.toString()
 
-private fun generatedClassName(originName: String, suffix: String = "") =
-        "$CLASS_NAME_PREFIX$CLASS_NAME_SEPARATOR$originName${if (suffix.isEmpty()) "" else "$CLASS_NAME_SEPARATOR$suffix"}"
+private fun generatedClassName(
+    baseName: String,
+    prefix: String = CLASS_NAME_PREFIX,
+    suffix: String = "",
+    separator: String = CLASS_NAME_SEPARATOR
+) = arrayOf(prefix, baseName, suffix)
+    .filter(String::isNotEmpty)
+    .joinToString(separator = separator)
 
 private fun findDefaultImplement(element: TypeElement): TypeElement? =
         element.enclosedElements.find {

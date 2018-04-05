@@ -18,33 +18,36 @@ import javax.lang.model.type.TypeMirror
  * Created by ywu on 2017/7/10.
  */
 internal class GsonTypeAdapterGenerator(
-        processingEnv: ProcessingEnvironment,
-        private val errorReporter: ErrorReporter) : FacetGenerator {
+    processingEnv: ProcessingEnvironment,
+    private val errorReporter: ErrorReporter
+) : FacetGenerator {
 
     private val typeUtils = processingEnv.typeUtils
     private val elementUtils = processingEnv.elementUtils
 
-    private lateinit var concreteDataClassSimpleName: String
+    private lateinit var dataClassConstructor: String
 
     override fun isApplicable(dataClassDef: DataClassDef): Boolean = dataClassDef.isGenerateGsonTypeAdapter
 
-    override fun generate(dataClassDef: DataClassDef,
-                          dataClassSpecBuilder: TypeSpec.Builder) {
-        concreteDataClassSimpleName = dataClassDef.className.simpleName()
-        val interfaceElement = dataClassDef.element
+    override fun generate(dataClassDef: DataClassDef, dataClassSpecBuilder: TypeSpec.Builder) {
         val adapterClsName = GSON_ADAPTER_CLASS_NAME  // nested class name
+        dataClassSpecBuilder.addType(generate(dataClassDef, adapterClsName))
+    }
+
+    fun generate(dataClassDef: DataClassDef, adapterClsName: String): TypeSpec {
+        dataClassConstructor = dataClassDef.className.simpleName()
+        val interfaceElement = dataClassDef.element
         val superClsTypeName = ParameterizedTypeName.Companion.get(TypeAdapter::class.asClassName(),
-                interfaceElement.asClassName())
-        val adapterClsSpec = TypeSpec.classBuilder(adapterClsName)
-                .superclass(superClsTypeName)
-                .primaryConstructor(FunSpec.constructorBuilder()
-                        .addParameter("gson", Gson::class)
-                        .build())
-                .addProperties(dataClassDef.persistentProperties.flatMap(this::propDefaultAndAdapter))
-                .addFunction(gsonReaderFunSpec(interfaceElement, dataClassDef.persistentProperties))
-                .addFunction(gsonWriterFunSpec(interfaceElement, dataClassDef.persistentProperties))
-                .build()
-        dataClassSpecBuilder.addType(adapterClsSpec)
+            interfaceElement.asClassName())
+        return TypeSpec.classBuilder(adapterClsName)
+            .superclass(superClsTypeName)
+            .primaryConstructor(FunSpec.constructorBuilder()
+                .addParameter("gson", Gson::class)
+                .build())
+            .addProperties(dataClassDef.persistentProperties.flatMap(this::propDefaultAndAdapter))
+            .addFunction(gsonReaderFunSpec(interfaceElement, dataClassDef.persistentProperties))
+            .addFunction(gsonWriterFunSpec(interfaceElement, dataClassDef.persistentProperties))
+            .build()
     }
 
     /** define default value / typeAdapter for each property */
@@ -138,7 +141,7 @@ internal class GsonTypeAdapterGenerator(
                                 endControlFlow()
                             }
 
-                    addStatement("return $concreteDataClassSimpleName(%L)",
+                    addStatement("return $dataClassConstructor(%L)",
                             properties.map(DataPropDef::name).joinToString())
                 }
                 .build()
@@ -245,5 +248,8 @@ internal class GsonTypeAdapterGenerator(
 
     companion object {
         internal const val GSON_ADAPTER_CLASS_NAME = "GsonTypeAdapter"
+
+        fun generatedStandAloneGsonAdapterClassName(element: TypeElement): String =
+            generatedClassName(element, GSON_ADAPTER_CLASS_NAME)
     }
 }

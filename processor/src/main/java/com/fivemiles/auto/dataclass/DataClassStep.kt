@@ -7,10 +7,10 @@ import javax.lang.model.element.TypeElement
 /**
  * Concrete logic processing the Data Classes
  */
-internal class DataClassStep(processingEnv: ProcessingEnvironment,
-                             sourceLocationManager: SourceLocationManager
+internal class DataClassStep(
+    private val processingEnv: ProcessingEnvironment,
+    sourceLocationManager: SourceLocationManager
 ) : AbstractProcessingStep(processingEnv, sourceLocationManager) {
-    private val dataClassGenerator = DataClassGenerator(processingEnv, errorReporter)
 
     private val _processedDataClasses: MutableSet<DataClassDef> = mutableSetOf()
 
@@ -21,11 +21,20 @@ internal class DataClassStep(processingEnv: ProcessingEnvironment,
 
     override val annotation = DataClass::class.java
 
-    override fun isApplicable(element: Element): Boolean = element.isInterfaceOrAbstractClass
+    override fun isApplicable(element: Element): Boolean =
+        element.isInterfaceOrAbstractClass || element.isParcelizedClass
 
     override fun doProcessElement(element: TypeElement) {
-        val (dataClassDef, dataClassSpec) = dataClassGenerator.generate(element)
-        generateFile(element, dataClassSpec)
-        _processedDataClasses.add(dataClassDef)
+        val generator = createGenerator(element)
+        val (dataClassDef, dataClassSpec) = generator.generate(element)
+        if (dataClassSpec != null) {
+            generateFile(element, dataClassSpec)
+            _processedDataClasses.add(dataClassDef)
+        }
+    }
+
+    private fun createGenerator(element: TypeElement): Generator {
+        val ctr = if (element.isParcelizedClass) ::ParcelizedClassGenerator else ::DataClassGenerator
+        return ctr(processingEnv, errorReporter)
     }
 }

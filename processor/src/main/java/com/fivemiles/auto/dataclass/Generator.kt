@@ -1,7 +1,18 @@
 package com.fivemiles.auto.dataclass
 
 import com.squareup.kotlinpoet.TypeSpec
+import javax.lang.model.element.TypeElement
 
+/**
+ * Data Class generator.
+ */
+internal interface Generator {
+    fun generate(element: TypeElement): Pair<DataClassDef, TypeSpec?>
+}
+
+/**
+ * Generator for a facet of the Data Class, such as Gson adapter.
+ */
 internal interface FacetGenerator {
 
     /**

@@ -1,4 +1,17 @@
-language: java
+language: android
+
+android:
+  components:
+    # Uncomment the lines below if you want to
+    # use the latest revision of Android SDK Tools
+    # Note that the tools section appears twice on purpose as it’s required to get the newest Android SDK tools.
+    - tools
+    - platform-tools
+    - tools
+
+    - build-tools-27.0.3
+    - android-27
+    - sys-img-armeabi-v7a-android-27
 
 jdk:
   - oraclejdk8
@@ -8,7 +21,13 @@ addons:
     packages:
       - oracle-java8-installer # Updates JDK 8 to the latest available.
 
-script: ./gradlew check --no-daemon --console=plain --continue
+before_script:
+  - echo no | android create avd --force -n test -t $ANDROID_TARGET --abi $ANDROID_ABI
+  - emulator -avd test -no-skin -no-audio -no-window &
+  - android-wait-for-emulator
+  - adb shell input keyevent 82 &
+
+# script: ./gradlew check --no-daemon --console=plain --continue
 
 branches:
   except:
@@ -19,8 +38,13 @@ notifications:
 
 sudo: false
 
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
 cache:
   directories:
     - $HOME/.m2
-    - $HOME/.gradle/caches
-    - $HOME/.gradle/wrapper
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/.android/build-cache
