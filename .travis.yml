@@ -1,5 +1,10 @@
 language: android
 
+env:
+  - ANDROID_TARGET=android-27
+  - BUILD_TOOLS_VERION=27.0.3
+  - ANDROID_ABI=armeabi-v7a
+
 android:
   components:
     # Uncomment the lines below if you want to
@@ -9,9 +14,9 @@ android:
     - platform-tools
     - tools
 
-    - build-tools-27.0.3
-    - android-27
-    - sys-img-armeabi-v7a-android-27
+    - build-tools-$BUILD_TOOLS_VERION
+    - $ANDROID_TARGET
+    - sys-img-${ANDROID_ABI}-$ANDROID_TARGET
 
 jdk:
   - oraclejdk8
