@@ -32,6 +32,10 @@ object D {
     val gson = "com.google.code.gson:gson:2.8.2"
     val javax_annotation = "org.glassfish:javax.annotation:10.0-b28"
 
+    // for development
+    val bintray_version = "1.7.3"
+    val ktlint = "com.github.shyiko:ktlint:0.19.0"
+
     // for testing
     val junit = "junit:junit:4.12"
     object GoogleTest {

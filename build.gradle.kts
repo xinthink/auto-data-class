@@ -1,10 +1,11 @@
+import D.ktlint
 import com.jfrog.bintray.gradle.BintrayExtension
 
 plugins {
     kotlin("jvm") version D.kt_version
     kotlin("kapt") version D.kt_version apply false
     kotlin("android") version D.kt_version apply false
-    id("com.jfrog.bintray") version "1.7.3"
+    id("com.jfrog.bintray") version D.bintray_version
 }
 
 buildscript {
@@ -39,6 +40,34 @@ subprojects {
         google()
         jcenter()
         mavenCentral()
+    }
+
+    val ktlintCfg by configurations.creating // add ktlint configuration
+
+    dependencies {
+        ktlintCfg(D.ktlint)
+    }
+
+    tasks {
+        val ktlint by creating(JavaExec::class) {
+            group = "verification"
+            description = "Check Kotlin code style."
+            main = "com.github.shyiko.ktlint.Main"
+            classpath = ktlintCfg
+            args("--verbose", "--reporter=plain", "--reporter=checkstyle,output=$buildDir/reports/ktlint.xml", "src/**/*.kt")
+        }
+
+        createTask("ktlintFormat", JavaExec::class) {
+            group = "formatting"
+            description = "Fix Kotlin code style deviations."
+            main = "com.github.shyiko.ktlint.Main"
+            classpath = ktlintCfg
+            args("-F", "src/**/*.kt")
+        }
+
+        afterEvaluate {
+            tasks.findByPath("check")?.dependsOn(ktlint)
+        }
     }
 }
 
