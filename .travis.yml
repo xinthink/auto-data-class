@@ -20,6 +20,7 @@ android:
 
     - build-tools-$BUILD_TOOLS_VERION
     - $ANDROID_TARGET
+    - $AVD_TARGET
     - sys-img-$ABI-$AVD_TARGET
 
 before_script:
