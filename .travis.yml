@@ -1,7 +1,13 @@
 language: android
 
-env:
-  - ANDROID_TARGET=android-27 BUILD_TOOLS_VERION=27.0.3 ANDROID_ABI=armeabi-v7a
+env: ANDROID_TARGET=android-27 BUILD_TOOLS_VERION=27.0.3 ABI=armeabi-v7a AVD_TARGET=android-25
+
+jdk: oraclejdk8
+
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer # Updates JDK 8 to the latest available.
 
 android:
   components:
@@ -14,18 +20,10 @@ android:
 
     - build-tools-$BUILD_TOOLS_VERION
     - $ANDROID_TARGET
-    - sys-img-${ANDROID_ABI}-$ANDROID_TARGET
-
-jdk:
-  - oraclejdk8
-
-addons:
-  apt:
-    packages:
-      - oracle-java8-installer # Updates JDK 8 to the latest available.
+    - sys-img-$ABI-$AVD_TARGET
 
 before_script:
-  - echo no | android create avd --force -n test -t $ANDROID_TARGET --abi $ANDROID_ABI
+  - echo no | android create avd --force -n test -t $AVD_TARGET --abi $ABI
   - emulator -avd test -no-skin -no-audio -no-window &
   - android-wait-for-emulator
   - adb shell input keyevent 82 &
