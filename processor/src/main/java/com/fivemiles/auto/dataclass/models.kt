@@ -104,7 +104,7 @@ internal data class DataClassDef(
         methods: Set<ExecutableElement>?
     ): Set<ExecutableElement> = methods?.filter {
         it.parameters.isEmpty() &&
-            (element.isParcelizedClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
+            (element.isConcreteClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
             it.returnType?.kind != TypeKind.VOID &&
             !hasDefaultImplement(element, it, typeUtils) &&
             objectMethodToOverride(it) === com.fivemiles.auto.dataclass.DefaultMethod.NONE

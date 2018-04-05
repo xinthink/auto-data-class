@@ -6,11 +6,11 @@ import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.TypeElement
 
 /**
- * Code generator for class annotated with `Parcelize`.
+ * Code generator for concrete class, for example, a class with `@Parcelize` annotation or a data class.
  *
- * For this type of class, we just need to generate a Gson TypeAdapter
+ * For this type of class, just generate a stand-alone Gson TypeAdapter
  */
-internal class ParcelizedClassGenerator(
+internal class ConcreteClassGenerator(
     private val processingEnv: ProcessingEnvironment,
     private val errorReporter: ErrorReporter
 ) : Generator {

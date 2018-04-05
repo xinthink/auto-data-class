@@ -22,7 +22,7 @@ internal class DataClassStep(
     override val annotation = DataClass::class.java
 
     override fun isApplicable(element: Element): Boolean =
-        element.isInterfaceOrAbstractClass || element.isParcelizedClass
+        element.isInterfaceOrAbstractClass || element.isConcreteClass
 
     override fun doProcessElement(element: TypeElement) {
         val generator = createGenerator(element)
@@ -34,7 +34,7 @@ internal class DataClassStep(
     }
 
     private fun createGenerator(element: TypeElement): Generator {
-        val ctr = if (element.isParcelizedClass) ::ParcelizedClassGenerator else ::DataClassGenerator
+        val ctr = if (element.isConcreteClass) ::ConcreteClassGenerator else ::DataClassGenerator
         return ctr(processingEnv, errorReporter)
     }
 }

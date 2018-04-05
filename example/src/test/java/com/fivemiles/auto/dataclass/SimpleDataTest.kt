@@ -53,6 +53,13 @@ import org.junit.Test
 }
 
 /**
+ * Use data class directly if Parcelable if not required
+ */
+@DataClass data class SimpleFinalData(val name: String, var age: Int) {
+    override fun toString() = "$name, $age years old"
+}
+
+/**
  * The most simple case of data class
  */
 class SimpleDataTest {

@@ -91,7 +91,7 @@ internal class GsonTypeAdapterFactoryStep(
             val dcIntf = it.element.asClassName() // interface defines the data class
             val dcImpl = it.className // class implements the data class
             val factoryMethod = findFactoryMethod(it.element)?.simpleName
-            val isStandAlone = factoryMethod == null && it.element.isParcelizedClass
+            val isStandAlone = factoryMethod == null && it.element.isConcreteClass
 
             if (isStandAlone) addStatement("%T::class.java.isAssignableFrom(%L) -> %T(%L)",
                 dcIntf, rawTypeValName,

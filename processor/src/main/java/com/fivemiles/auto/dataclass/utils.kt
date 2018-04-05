@@ -60,8 +60,9 @@ val Element.isInterfaceOrAbstractClass: Boolean
     get() = kind.isInterface || (kind.isClass && Modifier.ABSTRACT in modifiers)
 
 /** Check if the element is a class annotated with `Parcelize` */
-val Element.isParcelizedClass: Boolean
-    get() = kind.isClass && isAnnotationPresent("kotlinx.android.parcel.Parcelize")
+val Element.isConcreteClass: Boolean
+    get() = (kind.isClass && Modifier.ABSTRACT !in modifiers) ||
+        isAnnotationPresent("kotlinx.android.parcel.Parcelize") // Parcelize require concrete class
 
 /** Check if the element is a nested type */
 val Element.isNestedType: Boolean

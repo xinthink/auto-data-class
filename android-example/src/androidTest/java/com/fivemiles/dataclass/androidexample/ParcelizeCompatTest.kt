@@ -14,16 +14,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * When you use [Parcelize] + data class, the [Parcelable] stuff is handled by the Kotlin compiler.
+ * When you use [Parcelize], the [Parcelable] stuff is handled by the Kotlin compiler.
  * The only thing the [auto-data-class] processor can do is generating [Gson] adapters.
  */
 @Parcelize @DataClass
-data class ParcelizedType(
+class ParcelizedType(
     var name: String,
     var age: Int,
     val sex: Int
 ) : Parcelable {
-
     override fun toString() = "$name, $sex, $age years old"
 }
 
