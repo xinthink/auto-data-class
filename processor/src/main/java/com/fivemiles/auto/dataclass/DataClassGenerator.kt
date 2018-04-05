@@ -1,9 +1,10 @@
 package com.fivemiles.auto.dataclass
 
 /* ktlint-disable no-wildcard-imports */
+import com.google.auto.common.GeneratedAnnotations.generatedAnnotation
 import com.squareup.kotlinpoet.*
-import javax.annotation.Generated
 import javax.annotation.processing.ProcessingEnvironment
+import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
 
 /**
@@ -15,6 +16,8 @@ internal class DataClassGenerator(
     private val processingEnv: ProcessingEnvironment,
     private val errorReporter: ErrorReporter
 ) : Generator {
+
+    private val elementUtils = processingEnv.elementUtils
 
     private val facetGenerators: List<FacetGenerator> = listOf(
         GsonTypeAdapterGenerator(),
@@ -36,13 +39,11 @@ internal class DataClassGenerator(
                 else superclass(element.asClassName())
             }
             .addModifiers(KModifier.DATA, KModifier.INTERNAL)
-            .addAnnotation(AnnotationSpec.builder(Generated::class)
-                .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
-                .build())
             .addAnnotation(AnnotationSpec.builder(Suppress::class)
 //                        .addMember("names", "*arrayOf(%S)", "UNCHECKED_CAST")
                 .addMember("value", "\"UNCHECKED_CAST\"")
                 .build())
+            .generatedAnnotation()
             .generateProperties(dataClassDef.properties)
 
         // add extra facets to the data class
@@ -53,6 +54,17 @@ internal class DataClassGenerator(
         }
         return dataClassDef to builder.build()
     }
+
+    // add @Generated annotation
+    private fun TypeSpec.Builder.generatedAnnotation(): TypeSpec.Builder =
+        generatedAnnotation(elementUtils, SourceVersion.latestSupported())
+            .map {
+                val generated = AnnotationSpec.builder(it.asClassName())
+                    .addMember("value", "\"${DataClassAnnotationProcessor::class.qualifiedName}\"")
+                    .build()
+                addAnnotation(generated)
+            }
+            .orElse(this)
 
     // add stuff with properties
     private fun TypeSpec.Builder.generateProperties(properties: Set<DataPropDef>): TypeSpec.Builder {

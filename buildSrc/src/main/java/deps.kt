@@ -25,8 +25,8 @@ object D {
     }
 
     object Auto {
-        val common = "com.google.auto:auto-common:0.8"
-        val service = "com.google.auto.service:auto-service:1.0-rc3"
+        val common = "com.google.auto:auto-common:0.10"
+        val service = "com.google.auto.service:auto-service:1.0-rc4"
     }
     val ktpoet = "com.squareup:kotlinpoet:0.5.0"
     val gson = "com.google.code.gson:gson:2.8.2"
