@@ -14,6 +14,15 @@ Declare your data model as an interface/abstract class, and annotate it with `@D
 }
 ```
 
+Since version `0.6.0`, you can make things even simpler with [`@Parcelize`][kt-1.14-release-note]. You can now define data classes directly, to make the most out of Data Class, and leave the `Parcelable` stuff to the Kotlin compiler. The `@DataClass` processor will just generate a Gson `TypeAdapter` for such a class.
+
+```kotlin
+@Parcelize @DataClass data class Address(
+    val street: String?,
+    val city: String
+) : Parcelable
+```
+
 Now build the project, a data class will be generated, with all the boilerplates needed to implement `Parcelable` & Gson `TypeAdapter`.
 
 ```kotlin
@@ -64,8 +73,8 @@ Furthermore, you can customize the generated code with the `@DataProp` annotatio
 ```kotlin
 @DataClass interface Address {
     @get:DataProp("street",
-            jsonFieldAlternate = arrayOf("street1", "street2"),
-            defaultValueLiteral = """"string literal""""
+        jsonFieldAlternate = arrayOf("street1", "street2"),
+        defaultValueLiteral = """"string literal""""
     )
     val street: String?
     ...
@@ -95,12 +104,12 @@ See the [test cases][example-tests] for more details.
 Using the [kotlin-kapt] plugin
 
 ```gradle
-kapt 'com.fivemiles.auto:auto-data-class-processor:0.5.3'
-compile 'com.fivemiles.auto:auto-data-class-lib:0.5.3'
+kapt 'com.fivemiles.auto:auto-data-class-processor:0.6.0'
+compile 'com.fivemiles.auto:auto-data-class-lib:0.6.0'
 
 # for testing, optional
-kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.5.3'
-kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.5.3'
+kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.6.0'
+kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.6.0'
 ```
 
 ## Limitations
@@ -116,9 +125,13 @@ Not all parcelable data types are supported, for example, `android.util.SparseAr
 See this [test case][example-parcel-types] for more details.
 
 ### Overriding Built-in Methods
-Because of the nature of Kotlin [interface][Kotlin Interfaces] and [data class][Kotlin Data Classes], it will be a little difficult to override built-in methods such as `toString`, `hashCode`.
+If you're using interfaces or abstract classes, because of the nature of Kotlin [interface][Kotlin Interfaces] and [data class][Kotlin Data Classes], it will be a little difficult to override built-in methods such as `toString`, `hashCode`.
 
-Prefer [extension functions][Kotlin Extensions] whenever possible.
+There's several ways to handle such a situation.
+
+First, avoid using `Parcelable` if it's not required or resort to `@Parcelize`, so that you can define data classes directly, in which method overriding will not be a problem.
+
+Otherwise, prefer [extension functions][Kotlin Extensions] whenever possible.
 
 ```kotlin
 @DataClass interface Address {
@@ -181,3 +194,4 @@ See this [test case][example-overriding] for more details.
 [example-tests]: https://github.com/xinthink/auto-data-class/tree/master/example/src/test/java/com/fivemiles/auto/dataclass
 [example-parcel-types]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/parcel/ParcelableTypesTest.kt
 [example-overriding]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/OverridingTest.kt
+[kt-1.14-release-note]: https://blog.jetbrains.com/kotlin/2017/08/kotlin-1-1-4-is-out/
