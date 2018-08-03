@@ -5,16 +5,16 @@ import org.gradle.kotlin.dsl.kotlin
  * Dependencies definition
  */
 object D {
-    val kt_version = "1.2.31"
-    val kt_stdlib = "stdlib-jre7"
+    val kt_version = "1.2.60"
+    val kt_stdlib = "stdlib-jdk7"
     val kotlin = "org.jetbrains.kotlin:kotlin-$kt_stdlib:$kt_version"
 
     object Android {
-        val plugin_version = "3.1.0"
+        val plugin_version = "3.1.3"
         val target_sdk = 27
         val min_sdk = 21
         val build_tools_version = "27.0.3"
-        val support_libs_version = "27.1.0"
+        val support_libs_version = "27.1.1"
 
         val stub = "com.google.android:android:2.1.2"
 
