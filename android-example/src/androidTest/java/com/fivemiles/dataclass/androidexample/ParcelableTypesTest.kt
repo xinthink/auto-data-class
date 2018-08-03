@@ -3,12 +3,10 @@ package com.fivemiles.dataclass.androidexample
 /* ktlint-disable no-wildcard-imports */
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.test.runner.AndroidJUnit4
 import com.fivemiles.auto.dataclass.DataClass
 import com.fivemiles.auto.dataclass.DataProp
 import org.junit.Assert.*
 import org.junit.Test
-import org.junit.runner.RunWith
 
 @DataClass(generateGsonTypeAdapter = false)
 interface Address : Parcelable {
@@ -46,7 +44,6 @@ interface Person : Parcelable {
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-@RunWith(AndroidJUnit4::class)
 class ParcelableTypesTest {
 
     @Test fun testUnmarshalling() {

@@ -6,7 +6,7 @@ import com.fivemiles.auto.dataclass.DataProp
 import java.util.Date
 
 /**
- * Data class definition with custom Gson [ParcelAdapter]
+ * Data class definition with custom [ParcelAdapter]
  */
 @DataClass
 interface CustomParcelAdapterData : Parcelable {

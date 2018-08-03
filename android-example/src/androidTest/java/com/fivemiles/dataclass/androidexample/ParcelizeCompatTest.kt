@@ -3,7 +3,6 @@ package com.fivemiles.dataclass.androidexample
 /* ktlint-disable no-wildcard-imports */
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.test.runner.AndroidJUnit4
 import com.fivemiles.auto.dataclass.DataClass
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -11,7 +10,6 @@ import kotlinx.android.parcel.Parcelize
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 
 /**
  * When you use [Parcelize], the [Parcelable] stuff is handled by the Kotlin compiler.
@@ -29,7 +27,6 @@ class ParcelizedType(
 /**
  * [Parcelize] compatibility tests
  */
-@RunWith(AndroidJUnit4::class)
 class ParcelizeCompatTest {
     lateinit var gson: Gson
 

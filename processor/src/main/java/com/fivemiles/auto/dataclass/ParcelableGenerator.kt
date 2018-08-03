@@ -123,6 +123,20 @@ internal class ParcelableGenerator(processingEnv: ProcessingEnvironment) : Facet
     }
 
     private fun CodeBlock.Builder.readValue(sourceParam: String, prop: DataPropDef): CodeBlock.Builder {
+        // prefer custom TypeAdapter if any
+        val attr = prop.dataPropAnnotation
+        val customAdapterType = if (attr != null) {
+            val annotatedAdapterType = (getAnnotationValue(attr,
+                DataProp::parcelAdapter.name).value as TypeMirror).asTypeName()
+            if (ParcelAdapter::class.asTypeName() != annotatedAdapterType)
+                annotatedAdapterType else null
+        } else null
+
+        if (customAdapterType != null) {
+            add("%L.fromParcel(%L)\n", customAdapterPropName(prop.name), sourceParam)
+            return this
+        }
+
         val types = parcelableType(prop)
         val rawType = types.first()
         val nonNullType = prop.typeKt.asNonNullable()
