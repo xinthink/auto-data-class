@@ -112,6 +112,11 @@ kaptTest 'com.fivemiles.auto:auto-data-class-processor:0.6.1'
 kaptAndroidTest 'com.fivemiles.auto:auto-data-class-processor:0.6.1'
 ```
 
+## Developing auto-data-class
+If you forked this repo and made some changes, you can test them locally before subimit a PR, by [Publishing to Maven Local]:
+
+    ./gradlew publishToMavenLocal
+
 ## Limitations
 The lib is still at its early stage, there's some limitations you should know.
 
@@ -195,3 +200,4 @@ See this [test case][example-overriding] for more details.
 [example-parcel-types]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/parcel/ParcelableTypesTest.kt
 [example-overriding]: https://github.com/xinthink/auto-data-class/blob/master/example/src/test/java/com/fivemiles/auto/dataclass/OverridingTest.kt
 [kt-1.14-release-note]: https://blog.jetbrains.com/kotlin/2017/08/kotlin-1-1-4-is-out/
+[Publishing to Maven Local]: https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:install

@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.fivemiles.auto"
-version = "0.6.1"
+version = "0.7.0"
 loadProperties("local.properties", ext)  // load local.properties into ext
 
 allprojects {
