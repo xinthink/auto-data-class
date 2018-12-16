@@ -1,6 +1,16 @@
 # IntelliJ IDEA
-.idea
 *.iml
+projectFilesBackup
+.idea/.name
+.idea/caches
+.idea/gradle.xml
+.idea/libraries
+.idea/misc.xml
+.idea/modules.xml
+.idea/runConfigurations.xml
+.idea/tasks.xml
+.idea/vcs.xml
+.idea/workspace.xml
 
 # Gradle
 .gradle
