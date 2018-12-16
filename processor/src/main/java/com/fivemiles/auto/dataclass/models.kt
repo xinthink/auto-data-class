@@ -1,12 +1,20 @@
 package com.fivemiles.auto.dataclass
 
-/* ktlint-disable no-wildcard-imports */
-import com.google.auto.common.*
-import com.squareup.kotlinpoet.*
+import com.google.auto.common.AnnotationMirrors
+import com.google.auto.common.MoreElements
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asClassName
 import java.beans.Introspector
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.*
-import javax.lang.model.type.*
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.Element
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
+import javax.lang.model.element.TypeElement
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
+import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
 private const val CLASS_NAME_PREFIX = "DC"
@@ -41,7 +49,7 @@ internal data class DataClassDef(
 ) {
 
     val typeUtils: Types by lazy { processingEnv.typeUtils }
-    val elementUtils = processingEnv.elementUtils
+    private val elementUtils: Elements = processingEnv.elementUtils
 
     /**
      * [ClassName] of the data class to be generated
@@ -103,7 +111,8 @@ internal data class DataClassDef(
         element: TypeElement,
         methods: Set<ExecutableElement>?
     ): Set<ExecutableElement> = methods?.filter {
-        it.parameters.isEmpty() &&
+        !it.isAnnotationPresent(NonDataProp::class.java.name) && // ignore non-property
+            it.parameters.isEmpty() &&
             (element.isConcreteClass || Modifier.ABSTRACT in it.modifiers) && // allow concrete properties in Parcelized class
             it.returnType?.kind != TypeKind.VOID &&
             !hasDefaultImplement(element, it, typeUtils) &&

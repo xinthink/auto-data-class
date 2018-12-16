@@ -8,19 +8,19 @@ import kotlin.reflect.KClass
  * Define a Data property
  */
 @Retention(AnnotationRetention.SOURCE)
-@Target(AnnotationTarget.PROPERTY_GETTER)
+@Target(AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.FUNCTION)
 @MustBeDocumented
 annotation class DataProp(
     /** Name of the JSON field for the property */
     val jsonField: String = "",
     /** Alternative JSON field names */
-    val jsonFieldAlternate: Array<String> = emptyArray(),
+    val jsonFieldAlternate: Array<String> = [],
     /** The literal of the default value, used in generated source */
     val defaultValueLiteral: String = "",
     /** Customized Gson [TypeAdapter] for this property */
     val gsonTypeAdapter: KClass<out TypeAdapter<*>> = TypeAdapter::class,
     /** Customized [ParcelAdapter] for this property */
     val parcelAdapter: KClass<out ParcelAdapter<*>> = ParcelAdapter::class,
-    /** If the property is transient */
+    /** If the property is transient (will be skipped by the generators) */
     val isTransient: Boolean = false
 )

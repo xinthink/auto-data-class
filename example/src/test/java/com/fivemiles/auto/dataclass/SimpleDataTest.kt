@@ -39,9 +39,13 @@ import org.junit.Test
 /**
  * Or abstract classes is also supported.
  */
+@Suppress("unused")
 @DataClass abstract class SimpleAbsData : Parcelable {
     abstract val name: String
     abstract var age: Int
+
+    /** Getter-like concrete methods will be skipped */
+    fun description(): String = "$name is $age years old."
 
     companion object {
         fun create(name: String = "Jon", age: Int = 18): SimpleAbsData =
@@ -57,6 +61,10 @@ import org.junit.Test
  */
 @DataClass data class SimpleFinalData(val name: String, var age: Int) {
     override fun toString() = "$name, $age years old"
+
+    /** Skip getter-like methods by annotating [NonDataProp] */
+    @NonDataProp
+    fun description(): String = "$name is $age years old."
 }
 
 /**

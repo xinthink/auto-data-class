@@ -4,8 +4,15 @@ package com.fivemiles.auto.dataclass
 import com.google.common.truth.Truth.assertAbout
 import com.google.testing.compile.JavaFileObjects
 import com.google.testing.compile.JavaSourcesSubjectFactory.javaSources
-import com.squareup.kotlinpoet.*
-import org.junit.*
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
+import org.junit.Before
+import org.junit.Ignore
+import org.junit.Test
 import java.nio.charset.Charset
 import javax.tools.JavaFileObject
 import javax.tools.StandardLocation.SOURCE_OUTPUT
@@ -15,6 +22,7 @@ import javax.tools.StandardLocation.SOURCE_OUTPUT
  *
  * Created by ywu on 2017/7/6.
  */
+@Suppress("UNUSED_VARIABLE")
 class DataClassStepTest {
 
     private lateinit var dataClassSource: JavaFileObject
