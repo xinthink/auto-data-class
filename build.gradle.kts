@@ -24,6 +24,14 @@ group = "com.fivemiles.auto"
 version = "0.6.1"
 loadProperties("local.properties", ext)  // load local.properties into ext
 
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        mavenCentral()
+    }
+}
+
 subprojects {
     if (project.name != "android-example") {
         apply {
@@ -34,12 +42,6 @@ subprojects {
             sourceCompatibility = JavaVersion.VERSION_1_7
             targetCompatibility = JavaVersion.VERSION_1_7
         }
-    }
-
-    repositories {
-        google()
-        jcenter()
-        mavenCentral()
     }
 
     val ktlintCfg by configurations.creating // add ktlint configuration
