@@ -1,12 +1,29 @@
 package com.fivemiles.auto.dataclass
 
-/* ktlint-disable no-wildcard-imports */
 import com.google.auto.common.AnnotationMirrors.getAnnotationValue
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import com.google.gson.reflect.TypeToken
-import com.google.gson.stream.*
-import com.squareup.kotlinpoet.*
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
+import com.google.gson.stream.JsonWriter
+import com.squareup.kotlinpoet.BOOLEAN
+import com.squareup.kotlinpoet.BYTE
+import com.squareup.kotlinpoet.CHAR
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.DOUBLE
+import com.squareup.kotlinpoet.FLOAT
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.INT
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LONG
+import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.SHORT
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
+import com.squareup.kotlinpoet.asTypeName
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
 
@@ -26,10 +43,11 @@ internal class GsonTypeAdapterGenerator : FacetGenerator {
         dataClassSpecBuilder.addType(generate(dataClassDef, adapterClsName))
     }
 
+    /** Generate GsonTypeAdapter by specifying class name (can be nested or standalone) */
     fun generate(dataClassDef: DataClassDef, adapterClsName: String): TypeSpec {
-        dataClassConstructor = dataClassDef.className.simpleName()
+        dataClassConstructor = dataClassDef.className.canonicalName
         val interfaceElement = dataClassDef.element
-        val superClsTypeName = ParameterizedTypeName.Companion.get(TypeAdapter::class.asClassName(),
+        val superClsTypeName = ParameterizedTypeName.get(TypeAdapter::class.asClassName(),
             interfaceElement.asClassName())
         return TypeSpec.classBuilder(adapterClsName)
             .superclass(superClsTypeName)
@@ -148,9 +166,9 @@ internal class GsonTypeAdapterGenerator : FacetGenerator {
 
         // preferred json field name
         val jsonFieldName: String = if (propDefMirror != null) {
-            val _fieldName = getAnnotationValue(propDefMirror,
+            val field = getAnnotationValue(propDefMirror,
                 DataProp::jsonField.name).value as String
-            if (_fieldName.isNotBlank()) _fieldName else propName
+            if (field.isNotBlank()) field else propName
         } else propName
 
         addStatement("%S -> %L = %LAdapter.read(%L)", jsonFieldName, propName, propName, paramJsonReader)

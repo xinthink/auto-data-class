@@ -1,14 +1,26 @@
 package com.fivemiles.auto.dataclass
 
-/* ktlint-disable no-wildcard-imports */
 import com.fivemiles.auto.dataclass.GsonTypeAdapterGenerator.Companion.GSON_ADAPTER_CLASS_NAME
 import com.fivemiles.auto.dataclass.GsonTypeAdapterGenerator.Companion.generatedStandAloneGsonAdapterClassName
 import com.fivemiles.auto.dataclass.gson.GsonTypeAdapterFactory
-import com.google.gson.*
+import com.google.gson.Gson
+import com.google.gson.TypeAdapter
+import com.google.gson.TypeAdapterFactory
 import com.google.gson.reflect.TypeToken
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
+import com.squareup.kotlinpoet.asClassName
+import com.squareup.kotlinpoet.asTypeName
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.*
+import javax.lang.model.element.Element
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
+import javax.lang.model.element.TypeElement
 
 /**
  * Processing @[GsonTypeAdapterFactory], to generate a registry for all Gson [com.google.gson.TypeAdapter]s
@@ -95,7 +107,8 @@ internal class GsonTypeAdapterFactoryStep(
 
             if (isStandAlone) addStatement("%T::class.java.isAssignableFrom(%L) -> %T(%L)",
                 dcIntf, rawTypeValName,
-                dcImpl.peerClass(generatedStandAloneGsonAdapterClassName(it.element)),
+                dcImpl.topLevelClassName()
+                    .peerClass(generatedStandAloneGsonAdapterClassName(it.element)),
                 gsonParamName)
             else addStatement("%T::class.java.isAssignableFrom(%L) -> %T.%L(%L)",
                 dcIntf, rawTypeValName,
