@@ -42,3 +42,5 @@ package com.fivemiles.auto.dataclass
     val lmsd: List<Map<String, Double>>
     val lmsz: List<Map<String, Boolean>>
 }
+
+class PropTypesTest

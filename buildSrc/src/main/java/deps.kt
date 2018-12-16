@@ -34,7 +34,7 @@ object D {
 
     // for development
     val bintray_version = "1.7.3"
-    val ktlint = "com.github.shyiko:ktlint:0.19.0"
+    val ktlint = "com.github.shyiko:ktlint:0.29.0"
 
     // for testing
     val junit = "junit:junit:4.12"

@@ -16,3 +16,5 @@ interface TransientParcelData : Parcelable {
     @get:DataProp(isTransient = true, defaultValueLiteral = "\"non-nullable transient property\"")
     var tp: String
 }
+
+class TransientParcelFieldTest

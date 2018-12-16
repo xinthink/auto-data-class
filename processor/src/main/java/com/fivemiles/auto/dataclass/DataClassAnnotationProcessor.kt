@@ -23,7 +23,7 @@ import javax.lang.model.element.TypeElement
  * Annotation processor for auto-data-class
  */
 @Suppress("UNUSED")
-//@AutoService(Processor::class)
+// @AutoService(Processor::class)
 class DataClassAnnotationProcessor : BasicAnnotationProcessor(), SourceLocationManager {
     override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
 
