@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="example:test" type="AndroidJUnit" singleton="false">
     <module name="example" />
@@ -12,3 +13,4 @@
     </method>
   </configuration>
 </component>
+

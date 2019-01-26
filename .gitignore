@@ -1,6 +1,6 @@
 # IntelliJ IDEA
 *.iml
-projectFilesBackup
+projectFilesBackup*
 .idea/.name
 .idea/caches
 .idea/gradle.xml

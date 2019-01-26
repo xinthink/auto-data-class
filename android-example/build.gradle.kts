@@ -12,7 +12,6 @@ apply {
 
 android {
     compileSdkVersion(D.Android.target_sdk)
-    buildToolsVersion(D.Android.build_tools_version)
 
     defaultConfig {
         applicationId = "com.fivemiles.dataclass.androidexample"
