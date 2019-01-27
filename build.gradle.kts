@@ -1,4 +1,3 @@
-import D.ktlint
 import com.jfrog.bintray.gradle.BintrayExtension
 
 plugins {
@@ -59,7 +58,7 @@ subprojects {
             args("--verbose", "--reporter=plain", "--reporter=checkstyle,output=$buildDir/reports/ktlint.xml", "src/**/*.kt")
         }
 
-        createTask("ktlintFormat", JavaExec::class) {
+        register("ktlintFormat", JavaExec::class) {
             group = "formatting"
             description = "Fix Kotlin code style deviations."
             main = "com.github.shyiko.ktlint.Main"
@@ -82,16 +81,16 @@ configure(subprojects.filterNot { "example" in it.name }) {
     ext["artifactId"] = "auto-data-class-${project.name}"
 
     withConvention(JavaPluginConvention::class) {
-        val sourceJar by tasks.creating(Jar::class) {
+        val sourceJar by tasks.registering(Jar::class) {
             classifier = "sources"
             from(sourceSets["main"].allSource)
         }
 
         extensions.configure(PublishingExtension::class.java) {
             (publications) {
-                "mavenJava"(MavenPublication::class) {
+                register("mavenJava", MavenPublication::class) {
                     from(components["java"])
-                    artifact(sourceJar)
+                    artifact(sourceJar.get())
                     groupId = "${rootProject.group}"
                     artifactId = "${project.ext["artifactId"]}"
                     version = "${rootProject.version}"

@@ -28,7 +28,7 @@ android {
         }
     }
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_7)
+        sourceCompatibility = JavaVersion.VERSION_1_7
         setTargetCompatibility(JavaVersion.VERSION_1_7)
     }
     lintOptions {
