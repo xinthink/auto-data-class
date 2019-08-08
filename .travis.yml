@@ -51,3 +51,6 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
     - $HOME/.android/build-cache
+
+notifications:
+  webhooks: https://us-central1-hook-a4883.cloudfunctions.net/travisTelegram
