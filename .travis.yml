@@ -1,4 +1,5 @@
 language: android
+dist: trusty
 
 env: ANDROID_TARGET=android-27 BUILD_TOOLS_VERION=27.0.3 ABI=armeabi-v7a AVD_TARGET=android-22
 
